@@ -22,6 +22,6 @@ The report was rendered through LibreOffice and Poppler, then all 11 pages were 
 
 The 16-slide PowerPoint was finalized with the artifact-tool validation helpers, including package integrity, native tables/charts, font and layout geometry, embedded chart workbook data and successful reimport. All final slides were rendered and visually inspected. The deck contains nine native tables, three native charts and speaker notes on all slides. This is rendered-output verification; it is not a claim that interactive PowerPoint editing was tested.
 
-## Remaining external action
+## GitHub publication
 
-GitHub CLI reports no authenticated account. A local committed repository, archive and publishing script are prepared. No GitHub remote URL is represented as existing. Authenticate and publish before sharing a repository link for viva.
+GitHub device authentication completed for Darshansg76. The project was uploaded to https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction. GitHub CLI verified private visibility and the main default branch. The local main branch tracks origin/main. Because the repository is private, other people need repository access before they can open the viva link.

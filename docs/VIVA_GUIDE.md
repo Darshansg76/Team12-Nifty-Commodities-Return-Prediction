@@ -148,7 +148,7 @@ Use rolling retraining, more outer chronological folds, multiple random seeds, a
 
 ### Is the work reproducible after copying the folder?
 
-The package includes source data/provenance, processed partitions, feature definitions, scripts, saved models, row-level predictions, metrics and environment specifications. Use the README for the exact supported commands. The offline artifacts permit examination without downloading again. A complete retraining requires the recorded dependencies. Before showing a GitHub repository, verify its real URL and upload status; a local folder or prepared Git command is not a published repository.
+The package includes source data/provenance, processed partitions, feature definitions, scripts, saved models, row-level predictions, metrics and environment specifications. Use the README for the exact supported commands. The offline artifacts permit examination without downloading again. A complete retraining requires the recorded dependencies. The published private repository is https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction. Grant the instructor repository access before presenting this link during viva.
 
 ## Suggested rehearsal sequence
 

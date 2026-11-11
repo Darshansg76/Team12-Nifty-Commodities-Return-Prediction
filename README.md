@@ -71,7 +71,7 @@ See [reproducibility instructions](docs/REPRODUCIBILITY.md) for the document, pr
 
 The supplied specific Nifty Commodities brief controls the topic despite a conflicting ID 12 title in the generic list. [Source decisions](docs/SOURCE_DECISIONS.md) record this and the user's clarification permitting AI assistance.
 
-A local Git repository contains the completed project. GitHub publishing requires account authentication, which is absent on this computer. After `gh auth login`, run `./publish_github.ps1` to create a private repository and push this commit, or supply an existing repository URL. Do not state that GitHub hosting is complete until a remote URL exists.
+The completed project is published at [Darshansg76/Team12-Nifty-Commodities-Return-Prediction](https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction). The repository is **private**, and `main` is the default branch. The local repository tracks `origin/main`. To share it for viva, grant the instructor or teammates repository access through GitHub. After future local commits, `./publish_github.ps1` pushes updates to the existing origin.
 
 Official data and teaching materials retain their respective owners' rights. Course PDFs are referenced by filename and physical page number; original lecture files are not bundled in this repository.
 

@@ -218,7 +218,7 @@ The final model remains frozen at its original training cutoff, which makes eval
 
 The project includes the raw source responses and provenance, processed partitions, actual framework checkpoints, predictions, metrics, figures, an executed analysis notebook, editable presentation, report and viva guide. From a Python 3.12 environment, install requirements.txt, then run python src/pipeline.py. Run python -m unittest discover -s tests -v to verify causality, split isolation and the saved metrics. The local Windows launcher uses the prepared .venv environment.
 
-Model caches carry a signature of the source CSV and training code. Code or data changes force new prediction caches. Old model directories should be removed only for an intentional clean retraining. Downloading is a separate explicit command, so reproduction uses the frozen snapshot by default. GitHub upload remains a separate account action when authentication is available.
+Model caches carry a signature of the source CSV and training code. Code or data changes force new prediction caches. Downloading is a separate explicit command, so reproduction uses the frozen snapshot by default. The project is published in a private GitHub repository at https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction on the main branch. Grant the instructor repository access before sharing the viva link.
 
 
 ## Connection to the four units

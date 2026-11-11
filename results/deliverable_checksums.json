@@ -1,6 +1,6 @@
 {
-  "deliverables/Team_12_Project_Report.docx": "e40ce392d63ac10e1203cda48c5bc3f2df8ec1bc194503f32bef39eea8e6616a",
-  "deliverables/Team_12_Project_Report.pdf": "ebad32f0210595e209d2af83cdbbd77d372364da3d945bf72dc1f64dd71573c7",
+  "deliverables/Team_12_Project_Report.docx": "7d3fd42803c781d1dec2241d6b796f78cdc903fda9a0c92d97c181b61189e386",
+  "deliverables/Team_12_Project_Report.pdf": "ea782bb78f2d24b9204d42765a604a1beb07887c7e79c46ed308cb813c630f07",
   "deliverables/Team_12_Presentation.pptx": "fa47eee9070bec3e1e67bbf97131191ceee77a8d2316bd1dba0bf9eef68e5ce9",
   "notebooks/Team_12_Analysis.ipynb": "c1eb746fa13a002e22ff6519711eaa9ccd640be2eeec43304f9d411b64fe8df6",
   "src/pipeline.py": "fd78ef15ebb9b226c50e1c3e7910616aeaad0522f713b0efcc706a8e7013cc74",
@@ -16,6 +16,6 @@
   "models/flash/flash.pth": "46ec4320434849b227cde28c92297154c512cc10359aa6df4e110403e04ecd86",
   "models/xgboost/xgboost.ubj": "2cce07f7bc93e8f30b7446320d6e0fe7a7aea8529b08be4b9f7a50b55d624826",
   "data/raw/provenance.json": "c0bde0f36f02d1ef589499c33c08d8b77110515bf11fe261accb59e5535d5108",
-  "docs/VIVA_GUIDE.md": "36c2429e7813531c86cf7340fcdc4319dfa4e514cfe44ac1da98bac01ed7da7b",
-  "README.md": "9b93e60c21006f980b1ff0162b0d43d9d3b2718374ab0d66de27410f784a9fe3"
+  "docs/VIVA_GUIDE.md": "b094e48e5046fa15ba304045ad2d276335ad68980328cf243c8e0ee2f6c126a3",
+  "README.md": "e165a63f6064c83071aae15665ff77d8f4d962543ca8e515eb83db5d50679c82"
 }

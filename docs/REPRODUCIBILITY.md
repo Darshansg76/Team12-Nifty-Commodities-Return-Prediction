@@ -35,6 +35,6 @@ Rendered PNGs, dependency checks, synthetic smoke diagnostics and build logs are
 
 ## GitHub publishing
 
-`publish_github.ps1` checks authentication before creating anything online. Default visibility is private. After signing in, create and push a new repository with `./publish_github.ps1`, or set an existing remote with `./publish_github.ps1 -ExistingRepositoryUrl https://github.com/OWNER/REPOSITORY.git`. The script prints the repository URL for viva sharing. A private repository requires granting the instructor access through GitHub.
+The project is published at https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction as a private repository on main. Grant the instructor or teammates repository access before sharing the link. For future committed changes, `./publish_github.ps1` checks authentication, pushes to the existing origin and prints its URL. In a fresh local repository with no origin, it creates a private repository by default. An explicit existing remote can be supplied with `-ExistingRepositoryUrl https://github.com/OWNER/REPOSITORY.git`.
 
 
