@@ -1,0 +1,2 @@
+# Preserve exact frozen-source, checkpoint-cache and deliverable checksum bytes.
+* -text

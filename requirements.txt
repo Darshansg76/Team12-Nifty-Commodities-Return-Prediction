@@ -1,0 +1,21 @@
+# Validated with Python 3.12 on Windows, CPU execution.
+numpy==2.3.5
+pandas==3.0.1
+scikit-learn==1.9.1
+xgboost==3.4.1
+torch==2.15.0
+torchvision==0.29.2
+keras==3.15.1
+fastai==2.8.12
+pytorch-tabnet==4.1.0
+lightning-flash==0.8.2
+pytorch-lightning==1.9.5
+torchmetrics==0.10.3
+setuptools==80.9.0
+matplotlib==3.11.2
+nbformat==5.11.1
+nbclient==0.11.0
+ipykernel==7.4.0
+python-docx==1.2.0
+reportlab>=4.4,<5
+

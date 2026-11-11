@@ -1,0 +1,51 @@
+{
+  "deep_component": "tabnet",
+  "xgboost_weight": 0.1,
+  "grid": [
+    {
+      "xgboost_weight": 0.0,
+      "RMSE": 1.1097311544749917
+    },
+    {
+      "xgboost_weight": 0.1,
+      "RMSE": 1.1096105040840902
+    },
+    {
+      "xgboost_weight": 0.2,
+      "RMSE": 1.109779216855491
+    },
+    {
+      "xgboost_weight": 0.30000000000000004,
+      "RMSE": 1.1102371608734378
+    },
+    {
+      "xgboost_weight": 0.4,
+      "RMSE": 1.1109839784774231
+    },
+    {
+      "xgboost_weight": 0.5,
+      "RMSE": 1.1120190876563327
+    },
+    {
+      "xgboost_weight": 0.6000000000000001,
+      "RMSE": 1.1133416843089134
+    },
+    {
+      "xgboost_weight": 0.7000000000000001,
+      "RMSE": 1.1149507453501615
+    },
+    {
+      "xgboost_weight": 0.8,
+      "RMSE": 1.1168450326357906
+    },
+    {
+      "xgboost_weight": 0.9,
+      "RMSE": 1.1190230976699658
+    },
+    {
+      "xgboost_weight": 1.0,
+      "RMSE": 1.1214832870550588
+    }
+  ],
+  "selection_data": "validation only; no test optimization"
+}

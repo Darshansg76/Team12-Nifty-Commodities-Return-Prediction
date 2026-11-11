@@ -1,0 +1,67 @@
+{
+  "framework": "XGBoost",
+  "versions": {
+    "xgboost": "3.4.1"
+  },
+  "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\cv\\fold_3\\xgboost\\xgboost.ubj",
+  "hyperparameters": {
+    "objective": "reg:squarederror",
+    "n_estimators": 160,
+    "max_depth": 2,
+    "learning_rate": 0.03,
+    "min_child_weight": 5,
+    "subsample": 0.9,
+    "colsample_bytree": 0.9,
+    "reg_lambda": 5.0,
+    "tree_method": "hist",
+    "n_jobs": 2,
+    "random_state": 42,
+    "early_stopping_rounds": 20,
+    "eval_metric": "rmse"
+  },
+  "epochs_run": 28,
+  "best_epoch": 8,
+  "history": {
+    "validation_0": {
+      "rmse": [
+        1.1879039124805404,
+        1.1880306710721076,
+        1.1880336148231623,
+        1.1883930330153067,
+        1.1877876328479573,
+        1.1878126485338762,
+        1.187839956806368,
+        1.1873215214477655,
+        1.1874280450775758,
+        1.1876346080831763,
+        1.1882214780273144,
+        1.1884669643478978,
+        1.188391777438482,
+        1.1884074945934568,
+        1.188940014012384,
+        1.1890279445535175,
+        1.189246269534906,
+        1.1892181567438658,
+        1.1891921022396754,
+        1.1897634807339519,
+        1.189593857205781,
+        1.189669932355766,
+        1.190022557281264,
+        1.1909359605188725,
+        1.1904340407196088,
+        1.189902797046965,
+        1.1899153850391258,
+        1.190462517687235
+      ]
+    }
+  },
+  "name": "xgboost",
+  "seed": 42,
+  "n_features": 23,
+  "n_train": 2000,
+  "n_validation": 126,
+  "target_unit": "percentage points",
+  "elapsed_seconds": 0.016,
+  "validation_mse": 1.40973240275199,
+  "test_used_for_training": false
+}

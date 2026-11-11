@@ -1,0 +1,403 @@
+{
+  "selected_model": "blend",
+  "selection_rule": "lowest validation RMSE including baselines",
+  "selected_validation": {
+    "RMSE": 1.1096105040840902,
+    "MAE": 0.8182763320859522,
+    "R2": 0.020653267411253617,
+    "direction_accuracy": 0.5578093306288032,
+    "bias": -0.016228145798271556,
+    "n": 493
+  },
+  "selected_test": {
+    "RMSE": 1.1793779748287079,
+    "MAE": 0.8462680470409222,
+    "R2": 0.0021445542680454954,
+    "direction_accuracy": 0.5148095909732017,
+    "bias": 0.010531999137940883,
+    "n": 709
+  },
+  "best_test_model_descriptive_only": "keras",
+  "blend_deep_component": "tabnet",
+  "blend_xgboost_weight": 0.1,
+  "elapsed_seconds": 30.44570009999984,
+  "seed": 42,
+  "python": "3.12.14",
+  "models": {
+    "xgboost": {
+      "framework": "XGBoost",
+      "versions": {
+        "xgboost": "3.4.1"
+      },
+      "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\xgboost\\xgboost.ubj",
+      "hyperparameters": {
+        "objective": "reg:squarederror",
+        "n_estimators": 160,
+        "max_depth": 2,
+        "learning_rate": 0.03,
+        "min_child_weight": 5,
+        "subsample": 0.9,
+        "colsample_bytree": 0.9,
+        "reg_lambda": 5.0,
+        "tree_method": "hist",
+        "n_jobs": 2,
+        "random_state": 42,
+        "early_stopping_rounds": 20,
+        "eval_metric": "rmse"
+      },
+      "epochs_run": 27,
+      "best_epoch": 7,
+      "history": {
+        "validation_0": {
+          "rmse": [
+            1.1216724221448233,
+            1.1215715412179894,
+            1.1222341740002477,
+            1.1218188695849511,
+            1.1215571645236109,
+            1.12155624500467,
+            1.1214832846844824,
+            1.1215858740882596,
+            1.1221941314788366,
+            1.1221977707369566,
+            1.1225225292831642,
+            1.1232034430028,
+            1.1231936616927656,
+            1.1227763121380359,
+            1.1227366381442934,
+            1.1227409855519683,
+            1.123403259072187,
+            1.1233751982274907,
+            1.123372544172003,
+            1.1233346664629298,
+            1.1231483511849851,
+            1.1228431764633868,
+            1.123458755500757,
+            1.1232748654571347,
+            1.1230970676380057,
+            1.123665937481112,
+            1.1235460047722172
+          ]
+        }
+      },
+      "name": "xgboost",
+      "seed": 42,
+      "n_features": 23,
+      "n_train": 2380,
+      "n_validation": 493,
+      "target_unit": "percentage points",
+      "elapsed_seconds": 0.017,
+      "validation_mse": 1.2577247631438193,
+      "test_used_for_training": false
+    },
+    "keras": {
+      "framework": "Keras 3 with PyTorch backend",
+      "versions": {
+        "keras": "3.15.1",
+        "torch": "2.15.0"
+      },
+      "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\keras\\keras.keras",
+      "hyperparameters": {
+        "hidden_layers": [
+          64,
+          32
+        ],
+        "activation": "relu",
+        "dropout": 0.1,
+        "l2": 0.001,
+        "max_epochs": 40,
+        "patience": 5,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "optimizer": "Adam",
+        "loss": "mse"
+      },
+      "epochs_run": 17,
+      "best_epoch": 12,
+      "history": {
+        "loss": [
+          1.9371083974838257,
+          1.7199206352233887,
+          1.6714905500411987,
+          1.6326509714126587,
+          1.6107077598571777,
+          1.5949535369873047,
+          1.579662561416626,
+          1.57047438621521,
+          1.5385692119598389,
+          1.518470287322998,
+          1.5148916244506836,
+          1.493157148361206,
+          1.4969301223754883,
+          1.4878361225128174,
+          1.5179961919784546,
+          1.498476266860962,
+          1.488671064376831
+        ],
+        "val_loss": [
+          1.3839470148086548,
+          1.358605146408081,
+          1.3578855991363525,
+          1.3548768758773804,
+          1.3543360233306885,
+          1.3440459966659546,
+          1.348763108253479,
+          1.3357936143875122,
+          1.345597267150879,
+          1.3463058471679688,
+          1.3537256717681885,
+          1.3285900354385376,
+          1.3451621532440186,
+          1.3495535850524902,
+          1.343482255935669,
+          1.349324345588684,
+          1.3366867303848267
+        ]
+      },
+      "name": "keras",
+      "seed": 42,
+      "n_features": 23,
+      "n_train": 2380,
+      "n_validation": 493,
+      "target_unit": "percentage points",
+      "elapsed_seconds": 2.174,
+      "validation_mse": 1.258380957860166,
+      "test_used_for_training": false
+    },
+    "fastai": {
+      "framework": "fastai TabularPandas + tabular_learner",
+      "versions": {
+        "fastai": "2.8.12",
+        "torch": "2.15.0"
+      },
+      "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\fastai\\fastai.pth",
+      "hyperparameters": {
+        "hidden_layers": [
+          64,
+          32
+        ],
+        "activation": "relu",
+        "dropout": [
+          0.1,
+          0.0
+        ],
+        "use_bn": false,
+        "bn_cont": false,
+        "weight_decay": 0.001,
+        "max_epochs": 40,
+        "patience": 5,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "optimizer": "fastai Adam",
+        "loss": "mse"
+      },
+      "epochs_run": 10,
+      "best_epoch": 5,
+      "history": {
+        "train_loss": [
+          1.6217314004898071,
+          1.5515096187591553,
+          1.6124978065490723,
+          1.7176601886749268,
+          1.6470662355422974,
+          1.5415114164352417,
+          1.5246440172195435,
+          1.4837828874588013,
+          1.444653868675232,
+          1.4692943096160889
+        ],
+        "val_loss": [
+          1.2625548839569092,
+          1.2461681365966797,
+          1.2519298791885376,
+          1.256060242652893,
+          1.2418988943099976,
+          1.2455886602401733,
+          1.2496947050094604,
+          1.2449148893356323,
+          1.2672851085662842,
+          1.2639164924621582
+        ]
+      },
+      "name": "fastai",
+      "seed": 42,
+      "n_features": 23,
+      "n_train": 2380,
+      "n_validation": 493,
+      "target_unit": "percentage points",
+      "elapsed_seconds": 1.011,
+      "validation_mse": 1.24189894188505,
+      "test_used_for_training": false
+    },
+    "tabnet": {
+      "framework": "pytorch-tabnet TabNetRegressor",
+      "versions": {
+        "pytorch-tabnet": "4.1.0",
+        "torch": "2.15.0"
+      },
+      "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\tabnet\\tabnet.zip",
+      "hyperparameters": {
+        "n_d": 8,
+        "n_a": 8,
+        "n_steps": 3,
+        "gamma": 1.3,
+        "lambda_sparse": 0.001,
+        "max_epochs": 40,
+        "patience": 5,
+        "batch_size": 256,
+        "virtual_batch_size": 64,
+        "learning_rate": 0.01,
+        "optimizer": "Adam",
+        "loss": "mse"
+      },
+      "epochs_run": 15,
+      "best_epoch": 10,
+      "history": {
+        "loss": [
+          2.6347967704805004,
+          1.9152156673559622,
+          1.7554057706303958,
+          1.7446217721249877,
+          1.6731388296399798,
+          1.6669205851915503,
+          1.648599693654966,
+          1.6189780267346807,
+          1.6386595223130298,
+          1.645982921624384,
+          1.6351014499904728,
+          1.5907894040356163,
+          1.584997995961614,
+          1.6174766776942406,
+          1.6049312224909038
+        ],
+        "lr": [
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01,
+          0.01
+        ],
+        "validation_mse": [
+          1.3634101152420044,
+          1.3520710468292236,
+          1.3655798435211182,
+          1.2877589464187622,
+          1.2823753356933594,
+          1.2924262285232544,
+          1.293047308921814,
+          1.2620189189910889,
+          1.2924659252166748,
+          1.2315032482147217,
+          1.250816822052002,
+          1.2825533151626587,
+          1.2506489753723145,
+          1.2334702014923096,
+          1.245505452156067
+        ]
+      },
+      "feature_importances": [
+        0.05002875240217629,
+        0.027745238654780048,
+        0.03251676025254531,
+        0.018943008748887036,
+        0.03684116115652598,
+        0.01983072870667799,
+        0.018514174118654143,
+        0.055191674403041874,
+        0.028838354264860318,
+        0.01502484447310915,
+        0.04509668639639627,
+        0.04715610214262083,
+        0.004032432475352803,
+        0.04961308293156263,
+        0.0713207430916648,
+        0.025563801484917457,
+        0.008960377005678971,
+        0.07839018467944925,
+        0.0670582819694498,
+        0.17410981653375215,
+        0.08030760712626069,
+        0.012392746510691673,
+        0.03252344047094446
+      ],
+      "name": "tabnet",
+      "seed": 42,
+      "n_features": 23,
+      "n_train": 2380,
+      "n_validation": 493,
+      "target_unit": "percentage points",
+      "elapsed_seconds": 2.73,
+      "validation_mse": 1.2315032352123978,
+      "test_used_for_training": false
+    },
+    "flash": {
+      "framework": "Lightning Flash 0.8.2 core Task, custom dense regression backbone",
+      "implementation_note": "Real flash.core.model.Task subclass trained by flash.Trainer; not Flash's optional tabular-classification backbone.",
+      "versions": {
+        "lightning-flash": "0.8.2",
+        "pytorch-lightning": "1.9.5",
+        "torchmetrics": "0.10.3",
+        "torch": "2.15.0"
+      },
+      "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\flash\\flash.pth",
+      "checkpoint_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\flash\\flash_checkpoints\\best.ckpt",
+      "hyperparameters": {
+        "hidden_layers": [
+          64,
+          32
+        ],
+        "activation": "relu",
+        "dropout": 0.1,
+        "weight_decay": 0.001,
+        "max_epochs": 40,
+        "patience": 5,
+        "batch_size": 64,
+        "learning_rate": 0.001,
+        "optimizer": "Adam",
+        "loss": "mse"
+      },
+      "epochs_run": 10,
+      "best_epoch": 5,
+      "history": {
+        "val_loss": [
+          1.2496570348739624,
+          1.2421855926513672,
+          1.243565559387207,
+          1.2473453283309937,
+          1.240976333618164,
+          1.2469501495361328,
+          1.247206211090088,
+          1.2484954595565796,
+          1.2500381469726562,
+          1.2671117782592773
+        ]
+      },
+      "name": "flash",
+      "seed": 42,
+      "n_features": 23,
+      "n_train": 2380,
+      "n_validation": 493,
+      "target_unit": "percentage points",
+      "elapsed_seconds": 0.847,
+      "validation_mse": 1.2409763684208819,
+      "test_used_for_training": false
+    }
+  },
+  "cv_skipped": false,
+  "limits": [
+    "One index and one held-out era. Daily returns are noisy.",
+    "Validation supports early stopping and blend selection, so validation scores are optimistic.",
+    "No investment performance or executable trading profits are claimed.",
+    "Data are a price index, excluding dividend reinvestment."
+  ]
+}

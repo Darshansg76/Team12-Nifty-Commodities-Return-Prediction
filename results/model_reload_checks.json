@@ -1,0 +1,45 @@
+{
+  "sample": "12 evenly spaced real frozen test observations",
+  "feature_dates": [
+    "2024-01-01",
+    "2024-04-03",
+    "2024-07-08",
+    "2024-10-10",
+    "2025-01-13",
+    "2025-04-17",
+    "2025-07-21",
+    "2025-10-23",
+    "2026-01-27",
+    "2026-05-05",
+    "2026-08-05",
+    "2026-11-08"
+  ],
+  "tolerance_percentage_points": 1e-05,
+  "models": {
+    "fastai": {
+      "max_absolute_difference_pp": 9.020562075079397e-17,
+      "passed": true,
+      "observations": 12
+    },
+    "flash": {
+      "max_absolute_difference_pp": 8.326672684688674e-17,
+      "passed": true,
+      "observations": 12
+    },
+    "keras": {
+      "max_absolute_difference_pp": 2.6822090140252164e-07,
+      "passed": true,
+      "observations": 12
+    },
+    "tabnet": {
+      "max_absolute_difference_pp": 7.979727989493313e-17,
+      "passed": true,
+      "observations": 12
+    },
+    "xgboost": {
+      "max_absolute_difference_pp": 9.020562075079397e-17,
+      "passed": true,
+      "observations": 12
+    }
+  }
+}

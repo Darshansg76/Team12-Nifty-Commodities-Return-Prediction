@@ -1,0 +1,64 @@
+{
+  "framework": "Keras 3 with PyTorch backend",
+  "versions": {
+    "keras": "3.15.1",
+    "torch": "2.15.0"
+  },
+  "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\cv\\fold_1\\keras\\keras.keras",
+  "hyperparameters": {
+    "hidden_layers": [
+      64,
+      32
+    ],
+    "activation": "relu",
+    "dropout": 0.1,
+    "l2": 0.001,
+    "max_epochs": 40,
+    "patience": 5,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "optimizer": "Adam",
+    "loss": "mse"
+  },
+  "epochs_run": 12,
+  "best_epoch": 7,
+  "history": {
+    "loss": [
+      1.5241156816482544,
+      1.3929641246795654,
+      1.3325190544128418,
+      1.3163926601409912,
+      1.295636773109436,
+      1.2753040790557861,
+      1.2516666650772095,
+      1.2389121055603027,
+      1.229361653327942,
+      1.219923496246338,
+      1.2056937217712402,
+      1.1970113515853882
+    ],
+    "val_loss": [
+      1.8456364870071411,
+      1.785704493522644,
+      1.7613599300384521,
+      1.7678169012069702,
+      1.7357306480407715,
+      1.743910312652588,
+      1.7145788669586182,
+      1.7287776470184326,
+      1.7698312997817993,
+      1.7513494491577148,
+      1.7509191036224365,
+      1.741903305053711
+    ]
+  },
+  "name": "keras",
+  "seed": 42,
+  "n_features": 23,
+  "n_train": 1496,
+  "n_validation": 126,
+  "target_unit": "percentage points",
+  "elapsed_seconds": 2.382,
+  "validation_mse": 1.6433677513595792,
+  "test_used_for_training": false
+}

@@ -1,0 +1,6 @@
+{
+  "max_additivity_error": 7.450580596923828e-09,
+  "explained_partition": "validation",
+  "method": "XGBoost native TreeSHAP pred_contribs=True",
+  "bias_mean": 0.04705332592129707
+}

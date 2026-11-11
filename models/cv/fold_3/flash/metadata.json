@@ -1,0 +1,51 @@
+{
+  "framework": "Lightning Flash 0.8.2 core Task, custom dense regression backbone",
+  "implementation_note": "Real flash.core.model.Task subclass trained by flash.Trainer; not Flash's optional tabular-classification backbone.",
+  "versions": {
+    "lightning-flash": "0.8.2",
+    "pytorch-lightning": "1.9.5",
+    "torchmetrics": "0.10.3",
+    "torch": "2.15.0"
+  },
+  "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\cv\\fold_3\\flash\\flash.pth",
+  "checkpoint_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\cv\\fold_3\\flash\\flash_checkpoints\\best.ckpt",
+  "hyperparameters": {
+    "hidden_layers": [
+      64,
+      32
+    ],
+    "activation": "relu",
+    "dropout": 0.1,
+    "weight_decay": 0.001,
+    "max_epochs": 40,
+    "patience": 5,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "optimizer": "Adam",
+    "loss": "mse"
+  },
+  "epochs_run": 9,
+  "best_epoch": 4,
+  "history": {
+    "val_loss": [
+      1.402069330215454,
+      1.4054806232452393,
+      1.408492088317871,
+      1.3969025611877441,
+      1.4023863077163696,
+      1.4209928512573242,
+      1.4003645181655884,
+      1.4119598865509033,
+      1.4289368391036987
+    ]
+  },
+  "name": "flash",
+  "seed": 42,
+  "n_features": 23,
+  "n_train": 2000,
+  "n_validation": 126,
+  "target_unit": "percentage points",
+  "elapsed_seconds": 0.637,
+  "validation_mse": 1.3969024580989993,
+  "test_used_for_training": false
+}

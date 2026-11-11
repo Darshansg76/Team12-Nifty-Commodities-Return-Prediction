@@ -1,0 +1,258 @@
+{
+  "dataset": "Nifty Commodities daily price index OHLC",
+  "provider": "NSE Indices Limited",
+  "index_page": "https://www.niftyindices.com/indices/equity/thematic-indices/nifty-commodities",
+  "historical_data_page": "https://www.niftyindices.com/reports/historical-data",
+  "endpoint": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+  "endpoint_evidence": "https://liveindexsa.niftyindices.com/assets/js/IISLComponet.js function HistoricalData",
+  "requested_start": "2010-01-01",
+  "requested_end": "2026-11-10",
+  "actual_start": "2010-01-04",
+  "actual_end": "2026-11-09",
+  "rows": 4182,
+  "identical_duplicates_removed": 0,
+  "missing_values_by_column": {
+    "open": 538,
+    "high": 538,
+    "low": 538,
+    "close": 0
+  },
+  "missing_value_policy": "Official '-' values become blank CSV cells. No filling. Complete-OHLC subset is supplied separately.",
+  "complete_ohlc_file": "nifty_commodities_complete_ohlc.csv",
+  "complete_ohlc_sha256": "0c7900b25a3ff3ac25f5a445a1ae85c24a195c14835e29701f4cddce3ee59912",
+  "complete_ohlc_rows": 3644,
+  "complete_ohlc_start": "2012-02-27",
+  "complete_ohlc_end": "2026-11-09",
+  "price_basis": "Price index, not total return index; excludes reinvested dividends",
+  "units": "Index points, not INR spot commodity prices",
+  "calendar": "Observed sessions only; weekends/holidays are not fabricated or filled",
+  "prelaunch_note": "Includes prelaunch/back-calculated index observations. Launch date September 7, 2011; base date January 1, 2004 according to the official October 30, 2026 factsheet.",
+  "factsheet_url": "https://www.niftyindices.com/Factsheet/ind_nifty_commodities.pdf",
+  "csv_file": "nifty_commodities_daily.csv",
+  "csv_sha256": "68afec6582af9d3473ebbba149b36862a2c8bcd0cb01e5fbfafd9f60646e93fe",
+  "requests": [
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2010', 'endDate': '31-Dec-2010', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:40.450234+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2010-01-01_2010-12-31.json",
+      "response_sha256": "5fe7a073218ffafd963d2c69c306491572f8608bf6497caabdb1049481fcf217",
+      "response_bytes": 43849,
+      "observations": 252
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2011', 'endDate': '31-Dec-2011', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:41.942442+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2011-01-01_2011-12-31.json",
+      "response_sha256": "909dcfd2c88cc1ef9f8ff5b44e6388dfeb7444ef6d1a4ae309ee63de187c72c0",
+      "response_bytes": 42979,
+      "observations": 247
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2012', 'endDate': '31-Dec-2012', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:43.415384+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2012-01-01_2012-12-31.json",
+      "response_sha256": "6b2e047c959f1816558d667e5897162d8a3e6b18524a3f211f554881074d906f",
+      "response_bytes": 47491,
+      "observations": 251
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2013', 'endDate': '31-Dec-2013', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:44.120284+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2013-01-01_2013-12-31.json",
+      "response_sha256": "a8c6d1bc80998dfa6fb7589ce1385fe9df5fe3b49d50e1508dcca618e9f5255f",
+      "response_bytes": 48001,
+      "observations": 250
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2014', 'endDate': '31-Dec-2014', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:45.647647+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2014-01-01_2014-12-31.json",
+      "response_sha256": "6c80ffd551e828a40f0102acd36ca28ecce078d29d6222274864bcac88baacce",
+      "response_bytes": 46849,
+      "observations": 244
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2015', 'endDate': '31-Dec-2015', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:46.966239+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2015-01-01_2015-12-31.json",
+      "response_sha256": "6f2d6e9f9c99b6cc56eb76a634f3b842456513f9fa28f32e00b0936a8e3c1fd5",
+      "response_bytes": 47617,
+      "observations": 248
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2016', 'endDate': '31-Dec-2016', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:48.693604+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2016-01-01_2016-12-31.json",
+      "response_sha256": "54d6e7ecd9befc453140464e1aab9083563ad6c6a46afcb47b6f2884d8eec8fd",
+      "response_bytes": 47425,
+      "observations": 247
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2017', 'endDate': '31-Dec-2017', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:49.478406+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2017-01-01_2017-12-31.json",
+      "response_sha256": "024b319693edb1374472d817b6f26869b51a48eb529c822267b10053d2b4eea3",
+      "response_bytes": 47617,
+      "observations": 248
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2018', 'endDate': '31-Dec-2018', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:50.163774+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2018-01-01_2018-12-31.json",
+      "response_sha256": "f00d9e2c39512af2d78c064d37bced833bb8a6321217a7536be401f5640ca66b",
+      "response_bytes": 47233,
+      "observations": 246
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2019', 'endDate': '31-Dec-2019', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:51.297991+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2019-01-01_2019-12-31.json",
+      "response_sha256": "16c4367454832c14c029b515840b55fe2593a2e152533cbacbf43c053b76408b",
+      "response_bytes": 47041,
+      "observations": 245
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2020', 'endDate': '31-Dec-2020', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:51.948186+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2020-01-01_2020-12-31.json",
+      "response_sha256": "a3c126716b913315c44e10fb83f4473e42494e4c3ff1da4a826d1b184082ca37",
+      "response_bytes": 48385,
+      "observations": 252
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2021', 'endDate': '31-Dec-2021', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:53.117246+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2021-01-01_2021-12-31.json",
+      "response_sha256": "a57032007575428040689b51d4c2e0f8eabd38dcbf60e57b6b3f86da237d8f3f",
+      "response_bytes": 47617,
+      "observations": 248
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2022', 'endDate': '31-Dec-2022', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:54.761986+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2022-01-01_2022-12-31.json",
+      "response_sha256": "54d002d55513bdf5f80414eceef7d6992b5fcf0397bec277f61bf567793269a9",
+      "response_bytes": 47617,
+      "observations": 248
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2023', 'endDate': '31-Dec-2023', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:55.579550+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2023-01-01_2023-12-31.json",
+      "response_sha256": "97e3e78566ecbfdd973a8091db5816bfbae3dc1bdd816d35e169950465eecf5f",
+      "response_bytes": 47233,
+      "observations": 246
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2024', 'endDate': '31-Dec-2024', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:56.311562+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2024-01-01_2024-12-31.json",
+      "response_sha256": "9035e90a14c36e4b774c136b2983e62d33bae9b8ba68691811cee1c3e9a7f565",
+      "response_bytes": 47493,
+      "observations": 249
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2025', 'endDate': '31-Dec-2025', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:57.196413+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2025-01-01_2025-12-31.json",
+      "response_sha256": "6c21746c60f26c4e24bb219a1fe3be0588a1cabbb4d68087d4a8773b6ffbdf8a",
+      "response_bytes": 47342,
+      "observations": 249
+    },
+    {
+      "url": "https://www.niftyindices.com/BackPage/getHistoricaldatatabletoString",
+      "method": "POST",
+      "payload": {
+        "cinfo": "{'name': 'NIFTY COMMODITIES', 'startDate': '01-Jan-2026', 'endDate': '10-Nov-2026', 'indexName': 'NIFTY COMMODITIES'}"
+      },
+      "retrieved_at_utc": "2026-11-11T10:53:57.826505+00:00",
+      "http_status": 200,
+      "response_file": "nifty_commodities_2026-01-01_2026-11-10.json",
+      "response_sha256": "07a4f4b8c2bc0b251173f29211872c8c834c4669c463ad49ed61b1f8c81d84a6",
+      "response_bytes": 40486,
+      "observations": 212
+    }
+  ],
+  "snapshot_cutoff_note": "Requested through 2026-11-10. November 10, 2026 is an official Diwali-Balipratipada trading holiday, so the last returned session is November 9.",
+  "holiday_calendar_url": "https://www.nseindia.com/resources/exchange-communication-holidays"
+}

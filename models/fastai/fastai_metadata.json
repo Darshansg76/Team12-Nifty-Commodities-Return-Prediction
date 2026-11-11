@@ -1,0 +1,65 @@
+{
+  "framework": "fastai TabularPandas + tabular_learner",
+  "versions": {
+    "fastai": "2.8.12",
+    "torch": "2.15.0"
+  },
+  "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\fastai\\fastai.pth",
+  "hyperparameters": {
+    "hidden_layers": [
+      64,
+      32
+    ],
+    "activation": "relu",
+    "dropout": [
+      0.1,
+      0.0
+    ],
+    "use_bn": false,
+    "bn_cont": false,
+    "weight_decay": 0.001,
+    "max_epochs": 40,
+    "patience": 5,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "optimizer": "fastai Adam",
+    "loss": "mse"
+  },
+  "epochs_run": 10,
+  "best_epoch": 5,
+  "history": {
+    "train_loss": [
+      1.6217314004898071,
+      1.5515096187591553,
+      1.6124978065490723,
+      1.7176601886749268,
+      1.6470662355422974,
+      1.5415114164352417,
+      1.5246440172195435,
+      1.4837828874588013,
+      1.444653868675232,
+      1.4692943096160889
+    ],
+    "val_loss": [
+      1.2625548839569092,
+      1.2461681365966797,
+      1.2519298791885376,
+      1.256060242652893,
+      1.2418988943099976,
+      1.2455886602401733,
+      1.2496947050094604,
+      1.2449148893356323,
+      1.2672851085662842,
+      1.2639164924621582
+    ]
+  },
+  "name": "fastai",
+  "seed": 42,
+  "n_features": 23,
+  "n_train": 2380,
+  "n_validation": 493,
+  "target_unit": "percentage points",
+  "elapsed_seconds": 1.011,
+  "validation_mse": 1.24189894188505,
+  "test_used_for_training": false
+}

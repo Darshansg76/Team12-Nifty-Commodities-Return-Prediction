@@ -1,0 +1,48 @@
+{
+  "raw_rows": 3644,
+  "raw_start": "2012-02-27 00:00:00",
+  "raw_end": "2026-11-09 00:00:00",
+  "full_source_rows": 4182,
+  "initial_rows_excluded_missing_ohlc": 538,
+  "missing_policy": "Exclude contiguous initial missing-OHL era through 2012-02-24; no interior sessions removed or prices imputed.",
+  "raw_sha256": "0c7900b25a3ff3ac25f5a445a1ae85c24a195c14835e29701f4cddce3ee59912",
+  "feature_count": 23,
+  "feature_rows": 3584,
+  "partitions": {
+    "train": {
+      "rows": 2380,
+      "feature_start": "2012-05-22 00:00:00",
+      "feature_end": "2021-12-30 00:00:00",
+      "target_end": "2021-12-31 00:00:00"
+    },
+    "validation": {
+      "rows": 493,
+      "feature_start": "2022-01-03 00:00:00",
+      "feature_end": "2023-12-28 00:00:00",
+      "target_end": "2023-12-29 00:00:00"
+    },
+    "test": {
+      "rows": 709,
+      "feature_start": "2024-01-01 00:00:00",
+      "feature_end": "2026-11-08 00:00:00",
+      "target_end": "2026-11-09 00:00:00"
+    }
+  },
+  "target": "100 * (Close[next observed trading session] / Close[t] - 1)",
+  "forecast_time": "After the official close of feature date t",
+  "missing_ohlc": 0,
+  "duplicate_dates": 0,
+  "training_target_statistics": {
+    "count": 2380.0,
+    "mean": 0.04759626572752287,
+    "std": 1.276944058493085,
+    "min": -12.248413798899115,
+    "25%": -0.6022506764018387,
+    "50%": 0.0892911437742061,
+    "75%": 0.771993102260804,
+    "max": 7.602365787079157
+  },
+  "training_target_skew": -0.671605701010695,
+  "training_target_excess_kurtosis": 7.6595222226131785,
+  "training_up_fraction": 0.5327731092436975
+}

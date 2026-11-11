@@ -1,0 +1,17 @@
+.venv/
+.cache/
+.build/
+tmp/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+references/*_extracted.txt
+*.zip
+!models/**/tabnet.zip
+.chart-data-*/
+references/*_verified.txt
+references/*.js
+references/*.html
+references/IndexMapping.json
+references/test2025.json
+
