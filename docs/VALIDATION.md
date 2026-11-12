@@ -22,7 +22,7 @@ The executed notebook contains 11 executed analysis code cells, five embedded fi
 
 The report was rendered through LibreOffice and Poppler, then all 11 pages were visually inspected. The final report uses deliberate table widths, unclipped figures, consistent headers and page numbering. Its Word and PDF versions share the same content.
 
-The simplified 16-slide PowerPoint was finalized with the artifact-tool helpers, including package integrity, native tables/charts, font and layout geometry, embedded chart workbook data and successful reimport. All slides were rendered and visually inspected. The deck contains six native tables, five native charts and speaker notes on every slide. Weekday handling, validation selection, updated metrics and the simpler run commands are explained in the deck. Technical detail remains in speaker notes. The review uses rendered output.
+The 16-slide PowerPoint follows Introduction, What we did, and Our results. It was finalized with the artifact-tool helpers, including package integrity, native tables/charts, font and layout geometry, embedded chart workbook data and successful reimport. All slides were rendered and visually inspected. The deck contains seven native tables, five native charts and speaker notes on every slide. Each note starts with a natural explanation the team can present. Weekday handling, validation selection, updated metrics and the run commands remain covered. Detailed formulas and settings stay in the notes. The review uses rendered output.
 
 ## GitHub publication
 

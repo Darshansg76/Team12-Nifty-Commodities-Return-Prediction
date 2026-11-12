@@ -132,7 +132,7 @@ staged=ROOT/'.build'/'release.zip'; staged.parent.mkdir(exist_ok=True)
 with ZipFile(staged,'w',compression=ZIP_DEFLATED) as bundle:
     for file in sorted(ROOT.rglob('*')):
         relative=file.relative_to(ROOT)
-        if not file.is_file() or any(part in excluded for part in relative.parts):
+        if not file.is_file() or file.name.startswith('~$') or any(part in excluded or part.startswith('.chart-data-') for part in relative.parts):
             continue
         if relative.parts[0]=='references' and (file.suffix in {'.js','.html','.json'} or file.name.endswith(('_extracted.txt','_verified.txt'))):
             if file.name!='source_inventory.json':

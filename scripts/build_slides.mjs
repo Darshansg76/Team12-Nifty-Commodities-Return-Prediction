@@ -9,7 +9,8 @@ const SKILL = process.env.PRESENTATIONS_SKILL_DIR || 'C:/Users/darsh/.codex/plug
 process.env.RUNTIME_NODE_MODULES ||= path.join(DEP, 'node/node_modules');
 const {Presentation, PresentationFile, FileBlob} = await import(pathToFileURL(path.join(DEP, 'node/node_modules/@oai/artifact-tool/dist/artifact_tool.mjs')));
 const {finalizePresentation, resolvePresentationFont, applyPresentationChartFont} = await import(pathToFileURL(path.join(SKILL, 'container_tools/artifact_tool_utils.mjs')));
-const BUILD = path.join(ROOT, '.build/slides_simple');
+const BUILD = path.join(ROOT, '.build/slides_story');
+const FINAL_PPTX = process.env.TEAM12_PRESENTATION_OUTPUT || path.join(ROOT, 'deliverables/Team_12_Presentation.pptx');
 await fs.mkdir(BUILD, {recursive: true});
 await fs.mkdir(path.join(BUILD, 'validated'), {recursive: true});
 
@@ -98,7 +99,12 @@ function text(slide, value, x, y, width, height, options = {}) {
 function slide(title, explains, notes, dark = false) {
   const item = p.slides.add();
   item.background.fill = dark ? C.ink : C.paper;
-  text(item, title, 72, 48, 1136, 76, {fontSize: 44, bold: true, color: dark ? C.white : C.ink});
+  const number = p.slides.items.length;
+  const section = number === 2 ? 'Introduction' : number <= 9 ? 'What we did' : number <= 15 ? 'Our results' : 'References';
+  if (section.toLowerCase() !== title.toLowerCase()) {
+    text(item, section, 72, 24, 1080, 27, {fontSize: 21, color: dark ? '#86D2C2' : C.teal});
+  }
+  text(item, title, 72, 65, 1136, 76, {fontSize: 44, bold: true, color: dark ? C.white : C.ink});
   text(item, String(p.slides.items.length).padStart(2, '0'), 1168, 666, 40, 22, {fontSize: 16, color: dark ? '#BED6D7' : C.muted});
   item.speakerNotes.text = notes;
   coverage.push({slide: p.slides.items.length, title, explains});
@@ -167,31 +173,31 @@ function chart(item, type, config) {
 
 {
   const example = 100 * (Number(raw[1].close) / Number(raw[0].close) - 1);
-  const item = slide('Prediction target', 'Introduction, index meaning, forecast timing and target calculation',
+  const item = slide('Introduction to our project', 'Introduction, index meaning, forecast timing and target calculation',
     `${SOURCE.index} At the official close of session t, today OHLC is available. The outcome becomes known at the next observed close. Regression estimates the return magnitude. Direction accuracy later compares signs. The numeric example uses real source closes on 27 and 28 February 2012 and gives ${example}%. ${SOURCE.data}`);
-  text(item, 'Nifty Commodities tracks listed companies in commodity-related sectors.', 72, 160, 1080, 85, {fontSize: 31});
-  text(item, 'r(t+1) = 100 × [C(t+1) / C(t) − 1]', 72, 279, 1136, 65, {fontSize: 42, bold: true, color: C.teal});
-  text(item, 'C(t) is the closing index value at session t.', 72, 352, 1136, 35, {fontSize: 24, color: C.muted});
-  text(item, 'Forecast after the current close.\nEvaluate at the next observed trading close.', 72, 411, 540, 95, {fontSize: 28});
-  text(item, 'Actual source example', 710, 410, 490, 38, {fontSize: 28, bold: true});
-  text(item, '27 Feb 2012      2,517.75\n28 Feb 2012      2,574.20', 710, 462, 490, 80, {fontSize: 27});
-  text(item, `Next-session return   +${fmt(example, 2)}%`, 710, 570, 490, 48, {fontSize: 29, bold: true, color: C.teal});
+  text(item, 'We predict the next trading-session return of the Nifty Commodities index.', 72, 170, 1136, 101, {fontSize: 36, bold: true, color: C.teal});
+  text(item, 'The index tracks listed companies in commodity-related sectors.', 72, 294, 1136, 68, {fontSize: 29});
+  text(item, 'We compare five machine learning\nframeworks using the same data.', 72, 405, 570, 94, {fontSize: 29});
+  text(item, 'Regression predicts a number:\nthe percentage return.', 72, 545, 570, 85, {fontSize: 28, color: C.muted});
+  text(item, 'Example of a one-session return', 725, 405, 483, 44, {fontSize: 27, bold: true});
+  text(item, '27 Feb 2012      2,517.75\n28 Feb 2012      2,574.20', 725, 467, 483, 80, {fontSize: 27});
+  text(item, `Return   +${fmt(example, 2)}%`, 725, 579, 483, 48, {fontSize: 34, bold: true, color: C.teal});
 }
 
 {
-  const item = slide('Data and preparation', 'Official source, coverage, missing values and warm-up',
+  const item = slide('What we did', 'End-to-end project workflow, source preparation and outputs',
     `${SOURCE.data} There are 4,182 downloaded sessions. The first 538 have missing official open, high and low and form one initial block through 24 February 2012. Complete OHLC runs continuously from 27 February 2012 through 9 November 2026. The source checks reject duplicate dates, nonpositive prices and inconsistent OHLC. Genuine extremes remain. The request cutoff is 10 November, a trading holiday. A 60-session window removes 59 initial rows, and the final unknown target removes one row. This gives 3,584 labeled rows. Two boundary outcomes are additionally purged when partitioning.`);
   const stages = [
-    [Number(provenance.rows).toLocaleString('en-US'), 'Downloaded sessions', 'Official NSE Indices history from January 2010'],
-    ['538', 'Initial sessions excluded', 'Official open, high and low values are missing'],
-    [Number(data.raw_rows).toLocaleString('en-US'), 'Complete OHLC sessions', '27 February 2012 to 9 November 2026'],
-    [Number(data.feature_rows).toLocaleString('en-US'), 'Labeled feature rows', 'Trailing-window warm-up and final unknown target removed'],
+    ['01', `Prepared ${Number(data.raw_rows).toLocaleString('en-US')} complete price sessions`, `Downloaded ${Number(provenance.rows).toLocaleString('en-US')} sessions; excluded 538 with incomplete prices.`],
+    ['02', 'Explored the data and created inputs', 'Studied returns and volatility, then built 23 features from available prices.'],
+    ['03', 'Trained and compared five frameworks', 'Used the same time periods and measured RMSE, MAE and R².'],
+    ['04', 'Explained and reported the results', 'Compared simplicity and transparency; prepared the report, PPT and GitHub code.'],
   ];
   stages.forEach(([count, label, detail], index) => {
-    const top = 164 + index * 115;
-    text(item, count, 72, top, 225, 70, {fontSize: 52, bold: true, color: C.teal});
-    text(item, label, 340, top + 2, 850, 40, {fontSize: 29, bold: true});
-    text(item, detail, 340, top + 48, 850, 57, {fontSize: 25, color: C.muted});
+    const top = 170 + index * 115;
+    text(item, count, 72, top, 160, 70, {fontSize: 49, bold: true, color: C.teal});
+    text(item, label, 267, top + 2, 941, 40, {fontSize: 29, bold: true});
+    text(item, detail, 267, top + 48, 941, 60, {fontSize: 25, color: C.muted});
   });
 }
 
@@ -205,7 +211,7 @@ function chart(item, type, config) {
     yearly.set(year, Math.max(yearly.get(year) || 0, Number(row.volatility_20)));
   }
   const years = [...yearly.keys()];
-  const item = slide('Exploratory data analysis', 'Training return distribution, tail behavior and changing volatility',
+  const item = slide('We explored the data', 'Training return distribution, tail behavior and changing volatility',
     `Both charts use only the 2,380 training rows. Histogram bins are two percentage points wide, centered from -13 to 7. The right chart shows each year maximum of the trailing 20-session sample standard deviation. Training mean ${data.training_target_statistics.mean}%, standard deviation ${data.training_target_statistics.std} pp, skewness ${data.training_target_skew} and excess kurtosis ${data.training_target_excess_kurtosis}. Explain how changing volatility affects error scale. The notebook also contains the training correlation matrix. Sources are data/processed/train.csv and results/data_summary.json.`);
   chart(item, 'bar', {
     position: {left: 62, top: 158, width: 548, height: 370}, title: 'Training return distribution',
@@ -224,7 +230,7 @@ function chart(item, type, config) {
 }
 
 {
-  const item = slide('What the models learn from', 'All 23 features, their meaning and seven-day weekday encoding',
+  const item = slide('We created 23 model inputs', 'All 23 features, their meaning and seven-day weekday encoding',
     `A feature is a numeric clue given to a model. Returns and momentum describe recent price changes: current return, lags 1/2/3/5 and 5/10/20-session momentum total eight columns. Six rolling statistics describe recent averages and volatility. Three daily structure features describe intraday return, range and overnight gap. RSI compares recent up and down moves, and drawdown measures distance below a recent high. With four calendar columns, this final group has six features. Weekday sine/cosine use 2*pi*dayofweek/7, and month uses 2*pi*(month-1)/12. The official complete-OHLC sample has ${data.calendar_encoding.weekend_source_sessions} weekend sessions. Seven days keep Saturday distinct from Monday and Sunday distinct from Tuesday. Every feature uses the current or earlier session only. Full definitions are in src/pipeline.py. ${SOURCE.protocol}`);
   table(item, [
     ['Feature group', 'Count', 'Inputs'],
@@ -243,7 +249,7 @@ function chart(item, type, config) {
     const rows = folds.filter(row => row.model === name);
     return `${NAMES[name]} outer-fold RMSE mean ${fmt(mean(rows.map(row => row.RMSE)))} and sample SD ${fmt(std(rows.map(row => row.RMSE)))} pp.`;
   }).join('\n');
-  const item = slide('Chronological evaluation', 'Date partitions, scaling, purging and expanding cross validation',
+  const item = slide('We split the data by time', 'Date partitions, scaling, purging and expanding cross validation',
     `${SOURCE.protocol} StandardScaler fits each training block and transforms its later blocks. TargetDate must be earlier than the next partition first feature date. Within training, three expanding outer folds use 252 scoring sessions and a one-row gap. Each outer training block holds back 126 sessions to monitor early stopping and purges one additional boundary row. The final fit uses training through 2021 and validation in 2022-2023. Validation guides stopping, blend selection and final candidate selection. Final test outcomes score the selected approach.\n${foldNotes}\nComplete fold scores and dates are in results/cv_metrics.csv.`);
   table(item, [
     ['Phase', 'Training', 'Validation', 'Final test'],
@@ -256,7 +262,7 @@ function chart(item, type, config) {
 }
 
 {
-  const item = slide('Five framework implementations', 'All required frameworks and actual model architectures',
+  const item = slide('We trained five frameworks', 'All required frameworks and actual model architectures',
     `${SOURCE.deep} XGBoost adds shallow trees to reduce residual errors, using depth 2, maximum 160 trees, learning rate 0.03, subsample/column sample 0.9 and L2 5. Keras 3 uses its official PyTorch backend. fastai uses actual TabularPandas and tabular_learner. Lightning Flash uses a real flash.core.model.Task and flash.Trainer with a custom numeric regression backbone. All three dense networks have 64/32 ReLU hidden layers and a linear output. TabNet uses n_d=n_a=8, three attentive steps, gamma 1.3 and sparse penalty 0.001. Sources https://keras.io/getting_started/ , https://docs.fast.ai/tabular.learner.html , https://github.com/dreamquark-ai/tabnet , https://lightning-flash.readthedocs.io/en/stable/api/generated/flash.core.model.Task.html . Implementations are in src/model_adapters.py. Flash compatibility details are in docs/REPRODUCIBILITY.md.`);
   table(item, [
     ['Framework', 'Model and role'],
@@ -270,24 +276,21 @@ function chart(item, type, config) {
 }
 
 {
-  const item = slide('Training and error measures', 'Early stopping, baselines, RMSE, MAE and signed R2',
+  const item = slide('How we measured performance', 'Early stopping, baselines, RMSE, MAE and signed R2',
     `Training minimizes mean squared error. Keras, fastai and Flash use Adam at 0.001 with batches of 64. TabNet uses Adam at 0.01, batch 256 and virtual batch 64. Deep models run at most 40 epochs with patience 5 and restore the best monitored weights. XGBoost uses stopping patience 20. The seed is 42 and Torch has two CPU threads. RMSE and MAE use percentage points. R2 is 1-SSE/SST, where SST measures variation around the evaluation outcome mean. Negative R2 means error exceeds that reference. Fixed zero return, fixed training mean and Ridge with alpha 100 provide simple baselines. Direction accuracy compares actual>0 with forecast>0. ${SOURCE.metrics}`);
-  const measures = [
-    ['RMSE', 'sqrt(mean((actual − forecast)²))', 'Emphasizes large errors. Measured in percentage points.'],
-    ['MAE', 'mean(abs(actual − forecast))', 'Average absolute error. Measured in percentage points.'],
-    ['R²', '1 − squared error / outcome variation', '1 is a perfect fit. Negative values can occur.'],
-  ];
-  measures.forEach(([name, formula, explanation], index) => {
-    const top = 168 + index * 145;
-    text(item, name, 72, top, 150, 52, {fontSize: 37, bold: true, color: C.teal});
-    text(item, formula, 250, top + 2, 930, 45, {fontSize: 29, bold: true});
-    text(item, explanation, 250, top + 61, 930, 49, {fontSize: 26, color: C.muted});
-  });
-  text(item, 'Lower RMSE / MAE and higher R² are better. Compare against simple baselines.', 72, 619, 1136, 48, {fontSize: 25});
+  table(item, [
+    ['Metric', 'What it tells us', 'Better result'],
+    ['RMSE', 'Emphasizes large forecasting errors.', 'Lower'],
+    ['MAE', 'Average absolute forecasting error.', 'Lower'],
+    ['R²', 'Fit relative to the outcome variation.', 'Higher'],
+    ['Direction', 'Correctly predicted up/down moves.', 'Higher'],
+  ], [210, 700, 226], {height: 330, size: 27});
+  text(item, 'We also compared against simple baselines:', 72, 549, 1136, 44, {fontSize: 30, bold: true, color: C.teal});
+  text(item, 'Zero return, training mean and Ridge regression.', 72, 611, 1136, 44, {fontSize: 28});
 }
 
 {
-  const item = slide('Choosing the model', 'Validation-only model choice and the optional blend outcome',
+  const item = slide('We chose the model on validation', 'Validation-only model choice and the optional blend outcome',
     `Choose the candidate with the lowest 2022-2023 validation RMSE, including simple baselines. That selects ${NAMES[summary.selected_model]} at ${selected ? score(summary.selected_model, 'validation').RMSE : ''} pp. The five required framework validation scores appear here; the report has all nine candidates. As an optional extension, eleven weights combine XGBoost and the best validation deep model, ${NAMES[blend.deep_component]}. Validation chooses ${100*blend.xgboost_weight}% XGBoost and ${100*(1-blend.xgboost_weight)}% ${NAMES[blend.deep_component]}. Here the zero XGBoost weight reduces the blend to fastai and adds no gain. Validation also controls stopping, so its scores may be optimistic. Test outcomes do not choose this model. Sources: results/metrics.csv and results/blend_selection.json.`);
   const ranked = [...FRAMEWORKS].sort((a, b) => Number(score(a, 'validation').RMSE) - Number(score(b, 'validation').RMSE));
   table(item, [
@@ -299,7 +302,7 @@ function chart(item, type, config) {
 }
 
 {
-  const item = slide(`Test results on ${test.length} later sessions`, 'Full comparison of all five frameworks, baselines and optional blend',
+  const item = slide(`Our results on ${test.length} test sessions`, 'Full comparison of all five frameworks, baselines and optional blend',
     `${SOURCE.metrics} The test covers feature dates 1 January 2024 through 8 November 2026 and outcomes through 9 November. Validation selected ${NAMES[summary.selected_model]} before these outcomes were scored. ${NAMES[bestTestRMSE]} has the lowest retrospective test RMSE and ${NAMES[bestTestMAE]} the lowest test MAE among the five frameworks. The validation choice is retained. Direction accuracy is ${pct(selected.direction_accuracy)} for the selected model and ${pct(score('training_mean').direction_accuracy)} for the training-mean baseline. The blend duplicates fastai here. Signed R2 values remain in the table. The green row identifies the model selected on validation.`);
   table(item, [
     ['Model', 'RMSE (pp)', 'MAE (pp)', 'R²', 'Direction'],
@@ -314,7 +317,7 @@ function chart(item, type, config) {
 {
   const actual = test.map(row => Number(row.target_return));
   const prediction = test.map(row => Number(row[summary.selected_model]));
-  const item = slide('Forecast behavior on the test period', 'Observed-versus-predicted diagnostics and interpretation',
+  const item = slide('What our forecasts show', 'Observed-versus-predicted diagnostics and interpretation',
     `The plot contains all ${test.length} test outcomes. Both axes use -12 to 8 percentage points. The dashed diagonal represents perfect predictions. Observed sample standard deviation is ${std(actual)} pp, compared with predicted standard deviation ${std(prediction)} pp. Forecasts cluster near zero and capture little observed variation, consistent with R2 ${selected.R2}. Large realized moves receive much smaller forecasts. Source is results/test_predictions.csv.`);
   chart(item, 'scatter', {
     position: {left: 55, top: 159, width: 770, height: 459}, title: 'Observed and predicted returns', scatterOptions: {style: 'lineWithMarkers'},
@@ -334,7 +337,7 @@ function chart(item, type, config) {
 {
   const labels = {return_1: 'Current return', return_lag_5: 'Return lag 5', return_lag_1: 'Return lag 1', drawdown_60: '60-session drawdown', rsi_14: '14-session RSI', momentum_20: '20-session momentum'};
   const important = shap.filter(row => Number(row.mean_abs_shap) > 0).slice(0, 6).reverse();
-  const item = slide('Interpreting the XGBoost forecasts', 'TreeSHAP contributions and feature interpretation',
+  const item = slide('What influenced the XGBoost forecasts', 'TreeSHAP contributions and feature interpretation',
     `Native XGBoost TreeSHAP explains validation forecasts using only trees through the best stopping iteration. The chart contains six nonzero features ranked by mean absolute contribution. Current return has the largest attribution. Contributions describe output changes relative to the model bias, and correlated features can share credit. Maximum additivity error is ${shapCheck.max_additivity_error} pp. Sources are results/xgboost_shap_importance.csv and results/shap_check.json. Method https://arxiv.org/abs/1705.07874 and https://xgboost.readthedocs.io/en/stable/prediction.html . The supplied interpretability PDFs are mapped in references/unit_3_4_mapping.md.`);
   chart(item, 'bar', {
     position: {left: 52, top: 163, width: 795, height: 433}, title: 'Validation feature contributions', categories: important.map(row => labels[row.feature] || row.feature),
@@ -343,27 +346,27 @@ function chart(item, type, config) {
     yAxis: {title: 'Mean absolute contribution (pp)', min: 0, max: 0.007, numberFormatCode: '0.000', textStyle: {fontSize: 18}, majorGridlines: {fill: C.line, width: 0.8}},
     dataLabels: {showValue: true, position: 'outEnd', numberFormatCode: '0.0000', textStyle: {fontSize: 20}},
   });
-  text(item, 'Current return has\nthe largest attribution', 884, 215, 322, 120, {fontSize: 31, bold: true, color: C.teal});
-  text(item, 'Contributions measure\neffects on the fitted\nmodel output.', 884, 402, 322, 130, {fontSize: 27});
+  text(item, 'Current return has\nthe largest effect\nin this model', 884, 215, 322, 120, {fontSize: 31, bold: true, color: C.teal});
+  text(item, 'These values explain\nthe model forecast.\nThey do not prove causes.', 884, 402, 322, 130, {fontSize: 26});
   text(item, 'TreeSHAP decomposes each forecast into a baseline and feature contributions.', 72, 627, 1136, 39, {fontSize: 24, color: C.muted});
 }
 
 {
-  const item = slide('Simplicity transparency and efficacy', 'The three explicit qualitative comparison criteria',
+  const item = slide('Our comparison of the frameworks', 'The three explicit qualitative comparison criteria',
     `Simplicity means how easy these implementations are to set up and read. Transparency means how predictions can be inspected. Efficacy means the measured errors on the same dates. XGBoost has a compact API and native TreeSHAP used in this project. Keras has readable layers and fastai a high-level learner. Their dense networks need additional attribution to explain individual predictions. TabNet provides feature masks, but only the XGBoost TreeSHAP explanation was computed here. Flash requires legacy compatibility pins. ${NAMES[bestTestRMSE]} has the lowest test RMSE; ${NAMES[bestTestMAE]} has the lowest test MAE; ${NAMES[bestDeepValidation]} has the lowest deep validation RMSE. A simpler library is not automatically the most accurate. ${SOURCE.metrics}`);
   table(item, [
     ['Framework', 'Simplicity', 'Transparency', 'Measured efficacy'],
-    ['XGBoost', 'Short tabular API', 'TreeSHAP used here', `RMSE ${fmt(score('xgboost').RMSE)} pp`],
-    ['Keras', 'Readable layers', 'Needs extra attribution', bestTestRMSE === 'keras' ? 'Lowest test RMSE' : `RMSE ${fmt(score('keras').RMSE)} pp`],
-    ['fastai', 'High-level learner', 'Needs extra attribution', summary.selected_model === 'fastai' ? 'Chosen by validation' : `RMSE ${fmt(score('fastai').RMSE)} pp`],
-    ['TabNet', 'More settings', 'Feature masks available', bestTestMAE === 'tabnet' ? 'Lowest test MAE' : `RMSE ${fmt(score('tabnet').RMSE)} pp`],
-    ['Lightning Flash', 'Legacy setup needed', 'Needs extra attribution', `RMSE ${fmt(score('flash').RMSE)} pp`],
+    ['XGBoost', 'Short tabular workflow', 'TreeSHAP used here', `RMSE ${fmt(score('xgboost').RMSE)} pp`],
+    ['Keras', 'Readable layers', 'Extra explanation needed', bestTestRMSE === 'keras' ? 'Lowest test RMSE' : `RMSE ${fmt(score('keras').RMSE)} pp`],
+    ['fastai', 'Less training code', 'Extra explanation needed', summary.selected_model === 'fastai' ? 'Chosen by validation' : `RMSE ${fmt(score('fastai').RMSE)} pp`],
+    ['TabNet', 'More model settings', 'Feature masks available', bestTestMAE === 'tabnet' ? 'Lowest test MAE' : `RMSE ${fmt(score('tabnet').RMSE)} pp`],
+    ['Lightning Flash', 'Older dependencies', 'Extra explanation needed', `RMSE ${fmt(score('flash').RMSE)} pp`],
   ], [220, 295, 315, 306], {height: 400, size: 24});
   text(item, 'Efficacy means measured accuracy; simplicity and transparency are separate criteria.', 72, 612, 1136, 49, {fontSize: 24, color: C.muted});
 }
 
 {
-  const item = slide('Conclusions and next steps', 'Conclusion, study limitations and future experiments',
+  const item = slide('Our conclusion', 'Conclusion, study limitations and future experiments',
     `Validation selected ${NAMES[summary.selected_model]}. Its later test RMSE is ${selected.RMSE} pp and R2 ${selected.R2}. The zero-return RMSE is ${score('zero_return').RMSE}; the selected model is ${Math.abs(rmseDifference)} pp ${rmseDifference > 0 ? 'worse' : 'better'}. ${NAMES[bestTestRMSE]} has the lowest test RMSE, but it was not the validation choice. The optional blend gives no additional gain here. Direction accuracy ${pct(selected.direction_accuracy)} is below the training-mean baseline ${pct(score('training_mean').direction_accuracy)}. These results do not establish a reliable forecasting advantage. The experiment has one index, one test era and one seed. Rolling retraining and external variables with known publication times are sensible next experiments. ${SOURCE.metrics}`, true);
   text(item, 'Past prices alone give little reliable forecasting power here.', 72, 172, 1136, 100, {fontSize: 38, bold: true, color: '#86D2C2'});
   text(item, `${NAMES[summary.selected_model]} test RMSE   ${fmt(selected.RMSE)} pp\nZero-return RMSE   ${fmt(score('zero_return').RMSE)} pp\n${NAMES[summary.selected_model]} test R²          ${fmt(selected.R2)}`, 72, 307, 580, 159, {fontSize: 29, color: C.white});
@@ -374,7 +377,7 @@ function chart(item, type, config) {
 {
   const forecast = Number(historical[summary.selected_model]);
   const actual = Number(historical.target_return);
-  const item = slide('Historical prediction demonstration', 'Saved-checkpoint demonstration with a real observed outcome',
+  const item = slide('Our project demonstration', 'Saved-checkpoint demonstration with a real observed outcome',
     `Run .\\run_demo.ps1 from the project folder to show the selected saved model, or add -All to show all nine candidates. It rebuilds the features with a seven-day weekday cycle, loads the saved scaler and checkpoints, and checks against the saved historical predictions. Feature date ${historical.Date}; outcome ${historical.TargetDate}; forecast ${forecast}%; actual ${actual}%. Sunday 8 November is a real observed exchange session. This is a historical replay, not a new live forecast. The full .\\run_all.ps1 command retrains every model, runs tests, executes the notebook, rebuilds Word/PDF/PPT, and refreshes checksums and the ZIP. No prediction cache bypasses training. -ResultsOnly supports experiment reproduction without the slide-authoring runtime. Sources: src/demo.py, run_demo.ps1, run_all.ps1 and results/test_predictions.csv.`);
   text(item, `Information through ${ds(historical.Date)}\nOutcome on ${ds(historical.TargetDate)}`, 72, 163, 1136, 88, {fontSize: 30});
   text(item, `${NAMES[summary.selected_model]} forecast`, 72, 315, 500, 45, {fontSize: 28, bold: true});
@@ -409,6 +412,28 @@ function chart(item, type, config) {
   text(item, 'Darshansg76\nTeam12-Nifty-Commodities-\nReturn-Prediction', 813, 550, 395, 91, {fontSize: 22, color: C.muted});
 }
 
+// Natural opening sentences help the team explain each slide in its own voice.
+const openings = [
+  'Our project is Nifty Commodities benchmark return prediction. We are Team 12, and we compared five machine learning frameworks on the same forecasting task.',
+  'We wanted to predict the percentage return of the Nifty Commodities index for the next trading session. We used regression because the prediction is a number. The target is 100*(C(t+1)/C(t)-1), calculated from two successive observed closes. A forecast is made after the current close. The example uses actual closing values.',
+  'We first prepared the official price data. We then explored it, created model inputs, trained the five frameworks and compared their results. Finally, we explained the findings and prepared the project materials.',
+  'We explored the training data before comparing the models. Most returns are near zero, but some sessions have large moves. Volatility also changes over time, so forecasting errors can differ across periods.',
+  'We converted the price history into 23 numeric inputs. These describe recent returns, averages, volatility and daily price movements. We used only information available at the current close, and kept all seven weekdays distinct.',
+  'We kept the observations in time order. The models learned from the earlier training period, validation helped us choose the model, and the later test period checked its performance.',
+  'We trained every framework requested in the brief. XGBoost uses small trees, three frameworks train compact dense neural networks, and TabNet learns which features to focus on. All five received the same inputs and dates.',
+  'We measured forecasting errors using RMSE and MAE, and measured fit using R-squared. We also checked whether the forecast direction was correct. Simple baselines helped us judge whether extra model complexity added value. RMSE is sqrt(mean((actual-forecast)^2)); MAE is mean(abs(actual-forecast)); R-squared is 1-SSE/SST.',
+  `We chose ${NAMES[summary.selected_model]} because it had the lowest validation RMSE. We made this choice before comparing test scores. Our optional blend reduced to the same fastai model, so it added no benefit in this run.`,
+  `These are the results on ${test.length} later test sessions. ${NAMES[summary.selected_model]} is highlighted because validation selected it. ${NAMES[bestTestRMSE]} had the lowest test RMSE, but that later result did not change our earlier model choice.`,
+  'Our forecasts stayed close to zero even when the observed return moved sharply. This explains why the selected model captured little of the actual variation.',
+  'We used TreeSHAP to inspect the XGBoost forecasts. Current return had the largest average contribution. This explains the fitted model, and does not prove an economic cause.',
+  'We compared the frameworks on three criteria. Simplicity concerns how easy the implementation is to use, transparency concerns how forecasts can be explained, and efficacy concerns the measured forecasting errors.',
+  'We completed the required framework comparison, but the results show limited forecasting power from this index history alone. The selected fastai model did not improve test RMSE over zero return. More time periods and additional information would be useful next experiments.',
+  'This is a replay of one actual historical prediction using our saved fastai model. The forecast and observed return are shown side by side. The demo command loads the model, while the full command rebuilds the project.',
+  'These are our main data and method references. The report provides the full explanation, the notebook shows the calculations, and the private GitHub repository contains the code and project files.',
+];
+for (const [index, item] of p.slides.items.entries()) {
+  item.speakerNotes.text = `${openings[index]}\n\n${item.speakerNotes.text}`;
+}
 if (p.slides.items.length !== 16) throw new Error('The presentation outline requires 16 slides.');
 const stamp = Date.now();
 const candidatePath = path.join(BUILD, `candidate-${stamp}.pptx`);
@@ -433,5 +458,5 @@ for (const [index, item] of checked.slides.items.entries()) {
 }
 await fs.writeFile(path.join(BUILD, 'content_coverage.json'), JSON.stringify(coverage, null, 2));
 await fs.writeFile(path.join(BUILD, 'build_result.json'), JSON.stringify({slides: checked.slides.items.length, candidatePath, validatedPath, tableSlides: requiredTables, chartSlides: requiredCharts, result}, null, 2));
-await fs.copyFile(validatedPath, path.join(ROOT, 'deliverables/Team_12_Presentation.pptx'));
+await fs.copyFile(validatedPath, FINAL_PPTX);
 console.log(`Saved and rendered ${checked.slides.items.length} slides. Native tables on ${requiredTables.join(', ')}. Native charts on ${requiredCharts.join(', ')}.`);
