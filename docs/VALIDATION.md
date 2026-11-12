@@ -20,7 +20,7 @@ The executed notebook contains 11 executed analysis code cells, five embedded fi
 
 The report was rendered through LibreOffice and Poppler, then all 11 pages were visually inspected. The final report uses deliberate table widths, unclipped figures, consistent headers and page numbering. Its Word and PDF versions share the same content.
 
-The 16-slide PowerPoint was finalized with the artifact-tool validation helpers, including package integrity, native tables/charts, font and layout geometry, embedded chart workbook data and successful reimport. All final slides were rendered and visually inspected. The deck contains nine native tables, three native charts and speaker notes on all slides. This is rendered-output verification; it is not a claim that interactive PowerPoint editing was tested.
+The revised 16-slide PowerPoint was finalized with the artifact-tool validation helpers, including package integrity, native tables/charts, font and layout geometry, embedded chart workbook data and successful reimport. All final slides were rendered and visually inspected. The deck contains five native tables, six native charts and speaker notes on all slides. The review uses rendered output.
 
 ## GitHub publication
 

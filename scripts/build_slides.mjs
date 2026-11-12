@@ -1,224 +1,438 @@
-/** Build an editable, results-driven PowerPoint deck. Requires completed pipeline. */
+/** Build the professor-facing presentation from frozen experiment outputs. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {fileURLToPath,pathToFileURL} from 'node:url';
-const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const DEP=process.env.CODEX_PRIMARY_RUNTIME_DEPENDENCIES || 'C:/Users/darsh/.cache/codex-runtimes/codex-primary-runtime/dependencies';
-const SKILL=process.env.PRESENTATIONS_SKILL_DIR || 'C:/Users/darsh/.codex/plugins/cache/openai-primary-runtime/presentations/26.1105.12137/skills/presentations';
-process.env.RUNTIME_NODE_MODULES ||= path.join(DEP,'node/node_modules');
-const {Presentation,PresentationFile,FileBlob}=await import(pathToFileURL(path.join(DEP,'node/node_modules/@oai/artifact-tool/dist/artifact_tool.mjs')));
-const {finalizePresentation,resolvePresentationFont,applyPresentationChartFont}=await import(pathToFileURL(path.join(SKILL,'container_tools/artifact_tool_utils.mjs')));
-const TMP=path.join(ROOT,'.build/slides');
-await fs.mkdir(TMP,{recursive:true});await fs.mkdir(path.join(ROOT,'deliverables'),{recursive:true});
-const readJSON=async p=>JSON.parse(await fs.readFile(path.join(ROOT,p),'utf8'));
-function parseCSV(text){
-  const lines=text.replace(/^\uFEFF/,'').trim().split(/\r?\n/);
-  const parse=l=>{let a=[],s='',q=false;for(let i=0;i<l.length;i++){let c=l[i];if(c==='"'){if(q&&l[i+1]==='"'){s+='"';i++;}else q=!q;}else if(c===','&&!q){a.push(s);s='';}else s+=c;}a.push(s);return a;};
-  const keys=parse(lines.shift());return lines.map(l=>Object.fromEntries(parse(l).map((v,i)=>[keys[i],v])));
+import {fileURLToPath, pathToFileURL} from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DEP = process.env.CODEX_PRIMARY_RUNTIME_DEPENDENCIES || 'C:/Users/darsh/.cache/codex-runtimes/codex-primary-runtime/dependencies';
+const SKILL = process.env.PRESENTATIONS_SKILL_DIR || 'C:/Users/darsh/.codex/plugins/cache/openai-primary-runtime/presentations/26.1111.10930/skills/presentations';
+process.env.RUNTIME_NODE_MODULES ||= path.join(DEP, 'node/node_modules');
+const {Presentation, PresentationFile, FileBlob} = await import(pathToFileURL(path.join(DEP, 'node/node_modules/@oai/artifact-tool/dist/artifact_tool.mjs')));
+const {finalizePresentation, resolvePresentationFont, applyPresentationChartFont} = await import(pathToFileURL(path.join(SKILL, 'container_tools/artifact_tool_utils.mjs')));
+const BUILD = path.join(ROOT, '.build/slides_refined');
+await fs.mkdir(BUILD, {recursive: true});
+await fs.mkdir(path.join(BUILD, 'validated'), {recursive: true});
+
+async function readJSON(relativePath) {
+  return JSON.parse(await fs.readFile(path.join(ROOT, relativePath), 'utf8'));
 }
-const readCSV=async p=>parseCSV(await fs.readFile(path.join(ROOT,p),'utf8'));
-const [summary,data,provenance,blend,scores,cv,shap,shapCheck,raw]=await Promise.all([
-  readJSON('results/run_summary.json'),readJSON('results/data_summary.json'),readJSON('data/raw/provenance.json'),
-  readJSON('results/blend_selection.json'),readCSV('results/metrics.csv'),readCSV('results/cv_metrics.csv'),
-  readCSV('results/xgboost_shap_importance.csv'),readJSON('results/shap_check.json'),readCSV('data/raw/nifty_commodities_complete_ohlc.csv'),
-]);
-const names={zero_return:'Zero return',training_mean:'Training mean',ridge:'Ridge',xgboost:'XGBoost',keras:'Keras MLP',fastai:'fastai MLP',tabnet:'TabNet',flash:'Flash MLP',blend:'Blend'};
-const order=['zero_return','training_mean','ridge','xgboost','keras','fastai','tabnet','flash','blend'];
-const modelOrder=['xgboost','keras','fastai','tabnet','flash'];
-const n=x=>Number(x); const fmt=(x,d=3)=>Number(x).toFixed(d); const pct=x=>(100*Number(x)).toFixed(1)+'%';
-const ds=x=>String(x).slice(0,10); const score=(name,split='test')=>scores.find(r=>r.model===name&&r.split===split);
-const FONT=resolvePresentationFont();const C={paper:'#FAF9F6',ink:'#112D40',muted:'#516474',teal:'#168C83',line:'#D5DEE1',pale:'#EEF3F3',white:'#FFFFFF',orange:'#C66538'};
-const p=Presentation.create({slideSize:{width:1280,height:720}});
-const tableOwners=[],chartOwners=[];
-function txt(s,text,x,y,w,h,size=28,bold=false,color=C.ink){
-  const sh=s.shapes.add({geometry:'textbox',position:{left:x,top:y,width:w,height:h},fill:'none',line:{fill:'none',width:0}});
-  sh.text=text;sh.text.style={typeface:FONT,fontSize:size,bold,color,wrap:'square',verticalAlignment:'top',insets:0};return sh;
-}
-function slide(title,notes=''){
-  const s=p.slides.add();s.background.fill=C.paper;
-  txt(s,title,72,48,1136,95,44,true);
-  txt(s,String(p.slides.items.length).padStart(2,'0'),1160,660,48,24,16,false,C.muted);
-  s.speakerNotes.text=notes;return s;
-}
-function table(s,values,widths,{top=164,height=420,size=24,pad=10}={}){
-  const t=s.tables.add({rows:values.length,columns:values[0].length,left:72,top,width:1136,height,values,columnWidths:widths});
-  t.borders.assign({style:'solid',fill:C.line,width:1});
-  t.cells.block({row:0,column:0,rowCount:values.length,columnCount:values[0].length}).assign({
-    textStyle:{typeface:FONT,fontSize:size,color:C.ink},margins:{left:14,right:12,top:pad,bottom:pad},anchor:'center',
-  });
-  for(let r=0;r<values.length;r++)for(let c=0;c<values[0].length;c++){
-    t.getCell(r,c).fill=r===0?C.ink:(r%2===1?C.white:C.pale);
-    t.getCell(r,c).text.style={typeface:FONT,fontSize:size,color:r===0?C.white:C.ink,bold:r===0};
+
+function parseCSV(text) {
+  const lines = text.replace(/^\uFEFF/, '').trim().split(/\r?\n/);
+  function fields(line) {
+    const result = [];
+    let value = '';
+    let quoted = false;
+    for (let index = 0; index < line.length; index++) {
+      const character = line[index];
+      if (character === '"') {
+        if (quoted && line[index + 1] === '"') {
+          value += '"';
+          index++;
+        } else {
+          quoted = !quoted;
+        }
+      } else if (character === ',' && !quoted) {
+        result.push(value);
+        value = '';
+      } else {
+        value += character;
+      }
+    }
+    result.push(value);
+    return result;
   }
-  tableOwners.push(p.slides.items.length);return t;
+  const headers = fields(lines.shift());
+  return lines.map(line => Object.fromEntries(fields(line).map((value, index) => [headers[index], value])));
 }
-function chart(s,type,cfg){
-  // Excel stores at most 15 significant digits. Preserve 12 for portable
-  // embedded chart workbooks while the source CSV/JSON keeps full precision.
-  if(cfg.series)cfg.series=cfg.series.map(ser=>({...ser,...(type==='line'?{smooth:false}:{}),values:ser.values?.map(v=>v==null?v:Number(Number(v).toPrecision(12)))}));
-  const ch=s.charts.add(type,{chartFill:C.paper,plotAreaFill:C.paper,
-    chartLine:{fill:'none',width:0},plotAreaLine:{fill:'none',width:0},
-    title:cfg.series?.[0]?.name,titleTextStyle:{typeface:FONT,fontSize:24},lineOptions:{smooth:false},
-    ...cfg});
-  applyPresentationChartFont(ch,{fontFamily:FONT});chartOwners.push(p.slides.items.length);return ch;
+
+async function readCSV(relativePath) {
+  return parseCSV(await fs.readFile(path.join(ROOT, relativePath), 'utf8'));
 }
-const noteSource='Data source: NSE Indices Limited, https://www.niftyindices.com/reports/historical-data . Frozen request through 2026-11-10. Raw requests, SHA256 hashes and exact coverage: data/raw/provenance.json.';
-// 1
+
+const [summary, data, provenance, blend, scores, folds, shap, shapCheck, raw, training, test] = await Promise.all([
+  readJSON('results/run_summary.json'), readJSON('results/data_summary.json'), readJSON('data/raw/provenance.json'),
+  readJSON('results/blend_selection.json'), readCSV('results/metrics.csv'), readCSV('results/cv_metrics.csv'),
+  readCSV('results/xgboost_shap_importance.csv'), readJSON('results/shap_check.json'),
+  readCSV('data/raw/nifty_commodities_complete_ohlc.csv'), readCSV('data/processed/train.csv'), readCSV('results/test_predictions.csv'),
+]);
+const FONT = resolvePresentationFont({fontFamily: 'Arial'});
+const C = {paper: '#FBFCFA', ink: '#143342', teal: '#087F78', muted: '#536B75', line: '#DCE5E5', pale: '#EDF5F2', white: '#FFFFFF', copper: '#A44E36'};
+const NAMES = {zero_return: 'Zero return', training_mean: 'Training mean', ridge: 'Ridge', xgboost: 'XGBoost', keras: 'Keras', fastai: 'fastai', tabnet: 'TabNet', flash: 'Lightning Flash', blend: 'Blend'};
+const ORDER = ['zero_return', 'training_mean', 'ridge', 'xgboost', 'keras', 'fastai', 'tabnet', 'flash', 'blend'];
+const FRAMEWORKS = ['xgboost', 'keras', 'fastai', 'tabnet', 'flash'];
+const p = Presentation.create({slideSize: {width: 1280, height: 720}});
+const tableSlides = [];
+const chartSlides = [];
+const coverage = [];
+const fmt = (value, digits = 4) => Number(value).toFixed(digits);
+const pct = value => `${(100 * Number(value)).toFixed(2)}%`;
+const ds = value => String(value).slice(0, 10);
+const score = (name, split = 'test') => scores.find(row => row.model === name && row.split === split);
+const mean = values => values.reduce((total, value) => total + Number(value), 0) / values.length;
+function std(values) {
+  const average = mean(values);
+  return Math.sqrt(values.reduce((total, value) => total + (Number(value) - average) ** 2, 0) / (values.length - 1));
+}
+const selected = score(summary.selected_model);
+const historical = test.at(-1);
+const reduction = 100 * (Number(score('zero_return').RMSE) - Number(selected.RMSE)) / Number(score('zero_return').RMSE);
+const SOURCE = {
+  data: 'NSE Indices historical data https://www.niftyindices.com/reports/historical-data . Frozen official responses, retrieval times and SHA256 hashes are in data/raw/provenance.json.',
+  index: 'NSE Indices Nifty Commodities factsheet dated 30 October 2026 https://www.niftyindices.com/Factsheet/ind_nifty_commodities.pdf . The index contains listed commodity-related companies. The modeled series is a price index.',
+  metrics: 'Measurements are from results/metrics.csv, results/run_summary.json and saved actual predictions on common dates for every candidate.',
+  protocol: 'Implementation is src/pipeline.py. Supplied Unit 1 PDF page 81 and Unit 2 PDF pages 7-8, 25, 47 and 59 describe chronological validation and train-only preprocessing. Detailed mappings are in references/unit_1_2_mapping.md.',
+  deep: 'Supplied Deep_Learning_with_Tabular_Business_Data/1.pdf pages 6 and 25-33 cover hidden layers, common features, validation and best checkpoints. Actual architectures and stopping epochs are saved in models/<framework>/*_metadata.json.',
+};
+
+function text(slide, value, x, y, width, height, options = {}) {
+  const shape = slide.shapes.add({geometry: 'textbox', position: {left: x, top: y, width, height}, fill: 'none', line: {fill: 'none', width: 0}});
+  shape.text = value;
+  shape.text.style = {typeface: FONT, fontSize: 28, color: C.ink, wrap: 'square', verticalAlignment: 'top', insets: 0, ...options};
+  return shape;
+}
+
+function slide(title, explains, notes, dark = false) {
+  const item = p.slides.add();
+  item.background.fill = dark ? C.ink : C.paper;
+  text(item, title, 72, 48, 1136, 76, {fontSize: 44, bold: true, color: dark ? C.white : C.ink});
+  text(item, String(p.slides.items.length).padStart(2, '0'), 1168, 666, 40, 22, {fontSize: 16, color: dark ? '#BED6D7' : C.muted});
+  item.speakerNotes.text = notes;
+  coverage.push({slide: p.slides.items.length, title, explains});
+  return item;
+}
+
+function table(item, values, widths, options = {}) {
+  const {top = 166, height = 390, size = 25, pad = 9, highlightRows = []} = options;
+  const object = item.tables.add({rows: values.length, columns: values[0].length, left: 72, top, width: 1136, height, values, columnWidths: widths});
+  object.borders.assign({style: 'solid', fill: C.line, width: 0.8});
+  object.cells.block({row: 0, column: 0, rowCount: values.length, columnCount: values[0].length}).assign({
+    margins: {left: 14, right: 14, top: pad, bottom: pad}, anchor: 'center', textStyle: {typeface: FONT, fontSize: size, color: C.ink},
+  });
+  for (let row = 0; row < values.length; row++) {
+    for (let column = 0; column < values[0].length; column++) {
+      const cell = object.getCell(row, column);
+      const highlighted = highlightRows.includes(row);
+      cell.fill = row === 0 ? C.ink : (highlighted ? '#DDEFE8' : C.white);
+      cell.text.style = {typeface: FONT, fontSize: size, color: row === 0 ? C.white : C.ink, bold: row === 0 || highlighted};
+    }
+  }
+  tableSlides.push(p.slides.items.length);
+  return object;
+}
+
+function chart(item, type, config) {
+  // Embedded Excel chart data retain twelve significant digits of observations.
+  const series = config.series.map(series => ({
+    ...series, smooth: false,
+    values: series.values.map(value => Number(Number(value).toPrecision(12))),
+    ...(series.xValues ? {xValues: series.xValues.map(value => Number(Number(value).toPrecision(12)))} : {}),
+  }));
+  const object = item.charts.add(type, {
+    chartFill: C.paper, plotAreaFill: C.paper, chartLine: {fill: 'none', width: 0}, plotAreaLine: {fill: 'none', width: 0},
+    titleTextStyle: {typeface: FONT, fontSize: 23, color: C.ink}, hasLegend: false, ...config, series,
+  });
+  applyPresentationChartFont(object, {fontFamily: FONT});
+  chartSlides.push(p.slides.items.length);
+  return object;
+}
+
+// Cover. The small native chart is the actual monthly price-index history.
 {
- const s=p.slides.add();s.background.fill=C.ink;
- txt(s,'Nifty Commodities\nbenchmark return prediction',72,105,1100,190,58,true,C.white);
- txt(s,'Machine Learning with Business Data\nTeam 12',76,340,900,80,28,false,'#C2D7DB');
- txt(s,'Darshan Govekar   PES1UG24AM355\nDhanraj Rathod   PES1UG24AM359\nShridhar Umesh Golipalle   PES1UG25AM814',76,480,1090,120,27,false,C.white);
- s.speakerNotes.text='Introduce the three team members. The specific supplied project brief defines the topic as Nifty Commodities benchmark return prediction. The generic project list maps ID 12 to another topic, so this project follows the explicit brief and the user instruction. Team names and SRNs verified against the supplied team PDF. Presentation date: November 11, 2026.';
+  const item = p.slides.add();
+  item.background.fill = C.ink;
+  text(item, 'Nifty Commodities', 72, 76, 1136, 82, {fontSize: 64, bold: true, color: C.white});
+  text(item, 'Benchmark return prediction', 72, 170, 1136, 68, {fontSize: 47, color: '#86D2C2'});
+  text(item, 'Machine Learning with Business Data\nTeam 12', 76, 298, 620, 85, {fontSize: 29, color: '#D4E2E3'});
+  const members = [['Darshan Govekar', 'PES1UG24AM355'], ['Dhanraj Rathod', 'PES1UG24AM359'], ['Shridhar Umesh Golipalle', 'PES1UG25AM814']];
+  members.forEach(([name, srn], index) => {
+    text(item, name, 76, 467 + index * 45, 390, 34, {fontSize: 25, color: C.white});
+    text(item, srn, 470, 467 + index * 45, 300, 34, {fontSize: 25, color: '#D4E2E3'});
+  });
+  const monthly = new Map();
+  for (const row of raw) monthly.set(row.date.slice(0, 7), row);
+  const history = [...monthly.values()];
+  chart(item, 'line', {
+    position: {left: 800, top: 325, width: 390, height: 295}, chartFill: C.ink, plotAreaFill: C.ink,
+    title: 'Price index history, 2012–2026', titleTextStyle: {typeface: FONT, fontSize: 21, color: '#BED6D7'},
+    categories: history.map(row => row.date), series: [{name: 'Monthly last observed close', values: history.map(row => Number(row.close)), line: {fill: '#86D2C2', width: 3}}],
+    xAxis: {visible: false}, yAxis: {visible: false},
+  });
+  item.speakerNotes.text = `Introduce the three members and the research question. Can the index OHLC history predict its next trading-session return? The study compares the five frameworks in the brief using a common evaluation. Names and SRNs match the supplied team allocation PDF. The cover chart shows actual monthly last observed closes. ${SOURCE.data}`;
+  coverage.push({slide: 1, title: 'Nifty Commodities benchmark return prediction', explains: 'Title, course and verified team identity'});
 }
-// 2
+
 {
- const s=slide('Forecasting an equity index return',
- 'The Nifty Commodities Index tracks shares of companies in commodity-related sectors. It is not a spot-commodity basket. The October 30, 2026 official factsheet reports 30 constituents, launch September 7, 2011 and base January 1, 2004. The experiment forecasts the price return, which excludes dividend reinvestment. Source: https://www.niftyindices.com/Factsheet/ind_nifty_commodities.pdf . Target definition: src/pipeline.py build_features.');
- txt(s,'Nifty Commodities tracks listed companies in commodity-related sectors.',72,170,1110,90,34,true);
- txt(s,'At the close of session t, estimate the percentage change by the next observed trading close.',72,300,1100,100,32);
- txt(s,'Target = 100 × (Close at t+1 / Close at t − 1)',72,450,1100,70,36,true,C.teal);
- txt(s,'Regression is the primary task. Return direction is a secondary diagnostic.',72,560,1100,55,25,false,C.muted);
+  const example = 100 * (Number(raw[1].close) / Number(raw[0].close) - 1);
+  const item = slide('Prediction target', 'Introduction, index meaning, forecast timing and target calculation',
+    `${SOURCE.index} At the official close of session t, today OHLC is available. The outcome becomes known at the next observed close. Regression estimates the return magnitude. Direction accuracy later compares signs. The numeric example uses real source closes on 27 and 28 February 2012 and gives ${example}%. ${SOURCE.data}`);
+  text(item, 'Nifty Commodities tracks listed companies in commodity-related sectors.', 72, 160, 1080, 85, {fontSize: 31});
+  text(item, 'r(t+1) = 100 × [C(t+1) / C(t) − 1]', 72, 279, 1136, 65, {fontSize: 42, bold: true, color: C.teal});
+  text(item, 'C(t) is the closing index value at session t.', 72, 352, 1136, 35, {fontSize: 24, color: C.muted});
+  text(item, 'Forecast after the current close.\nEvaluate at the next observed trading close.', 72, 411, 540, 95, {fontSize: 28});
+  text(item, 'Actual source example', 710, 410, 490, 38, {fontSize: 28, bold: true});
+  text(item, '27 Feb 2012      2,517.75\n28 Feb 2012      2,574.20', 710, 462, 490, 80, {fontSize: 27});
+  text(item, `Next-session return   +${fmt(example, 2)}%`, 710, 570, 490, 48, {fontSize: 29, bold: true, color: C.teal});
 }
-// 3
+
 {
- const s=slide('Official data and the analysis sample',noteSource+'\nThe initial 538 rows have valid close but missing official open, high and low. They form a contiguous initial block ending February 24, 2012. The complete era begins February 27, 2012 with no interior missing OHLC. No imputation or row-level removal inside the modeling era. November 10, 2026 is an official trading holiday: https://www.nseindia.com/resources/exchange-communication-holidays .');
- table(s,[['Dataset','Sessions','Coverage'],['Downloaded close history',String(provenance.rows),`${provenance.actual_start} to ${provenance.actual_end}`],['Initial rows with missing OHL',String(provenance.rows-provenance.complete_ohlc_rows),'2010-01-04 to 2012-02-24'],['Complete OHLC modeling era',String(provenance.complete_ohlc_rows),`${provenance.complete_ohlc_start} to ${provenance.complete_ohlc_end}`],['Engineered feature rows',String(data.feature_rows),'Warm-up and last unknown target removed']],[400,140,596],{height:350,size:24});
- txt(s,'Raw responses and hashes preserve the source snapshot. No synthetic observations.',72,565,1120,65,26,false,C.muted);
+  const item = slide('Data and preparation', 'Official source, coverage, missing values and warm-up',
+    `${SOURCE.data} There are 4,182 downloaded sessions. The first 538 have missing official open, high and low and form one initial block through 24 February 2012. Complete OHLC runs continuously from 27 February 2012 through 9 November 2026. The source checks reject duplicate dates, nonpositive prices and inconsistent OHLC. Genuine extremes remain. The request cutoff is 10 November, a trading holiday. A 60-session window removes 59 initial rows, and the final unknown target removes one row. This gives 3,584 labeled rows. Two boundary outcomes are additionally purged when partitioning.`);
+  const stages = [
+    [Number(provenance.rows).toLocaleString('en-US'), 'Downloaded sessions', 'Official NSE Indices history from January 2010'],
+    ['538', 'Initial sessions excluded', 'Official open, high and low values are missing'],
+    [Number(data.raw_rows).toLocaleString('en-US'), 'Complete OHLC sessions', '27 February 2012 to 9 November 2026'],
+    [Number(data.feature_rows).toLocaleString('en-US'), 'Labeled feature rows', 'Trailing-window warm-up and final unknown target removed'],
+  ];
+  stages.forEach(([count, label, detail], index) => {
+    const top = 164 + index * 115;
+    text(item, count, 72, top, 225, 70, {fontSize: 52, bold: true, color: C.teal});
+    text(item, label, 340, top + 2, 850, 40, {fontSize: 29, bold: true});
+    text(item, detail, 340, top + 48, 850, 57, {fontSize: 25, color: C.muted});
+  });
 }
-// 4
+
 {
- const tr=data.partitions.train;
- const s=slide('Price history and return variability',noteSource+'\nChart shows actual annual last observed closes within the training era only, joined for a compact view. It does not show intra-year price variation. Statistics below are next-session target returns on the training partition. They are descriptive, not evidence of predictive skill. Training statistics from results/data_summary.json.');
- const monthly=new Map();for(const r of raw){const date=r.date??r.Date;if(date<=ds(tr.feature_end))monthly.set(date.slice(0,4),r);}
- const rows=[...monthly.values()];
- chart(s,'line',{position:{left:60,top:155,width:770,height:410},categories:rows.map(r=>(r.date??r.Date).slice(0,4)),series:[{name:'Annual last observed close',values:rows.map(r=>n(r.close??r.Close)),line:{fill:C.teal,width:3},marker:{symbol:'circle',size:6,fill:C.teal}}],hasLegend:false,xAxis:{textStyle:{fontSize:18},title:'Training era annual last observed close'},yAxis:{numberFormatCode:'#,##0',textStyle:{fontSize:18},title:'Index points',majorGridlines:{fill:C.line,width:1}}});
- const st=data.training_target_statistics;
- txt(s,`Mean return\n${fmt(st.mean)}%`,875,180,310,95,28,true);
- txt(s,`Daily standard deviation\n${fmt(st.std)} pp`,875,305,310,100,28,true);
- txt(s,`Excess kurtosis\n${fmt(data.training_target_excess_kurtosis,2)}`,875,435,310,100,28,true);
- txt(s,`Training observations: ${tr.rows}. Large moves require RMSE and MAE to be reported together.`,72,595,1110,48,25,false,C.muted);
+  const counts = Array(11).fill(0);
+  const yearly = new Map();
+  for (const row of training) {
+    const bin = Math.min(10, Math.max(0, Math.floor((Number(row.target_return) + 14) / 2)));
+    counts[bin]++;
+    const year = row.Date.slice(0, 4);
+    yearly.set(year, Math.max(yearly.get(year) || 0, Number(row.volatility_20)));
+  }
+  const years = [...yearly.keys()];
+  const item = slide('Exploratory data analysis', 'Training return distribution, tail behavior and changing volatility',
+    `Both charts use only the 2,380 training rows. Histogram bins are two percentage points wide, centered from -13 to 7. The right chart shows each year maximum of the trailing 20-session sample standard deviation. Training mean ${data.training_target_statistics.mean}%, standard deviation ${data.training_target_statistics.std} pp, skewness ${data.training_target_skew} and excess kurtosis ${data.training_target_excess_kurtosis}. Explain how changing volatility affects error scale. The notebook also contains the training correlation matrix. Sources are data/processed/train.csv and results/data_summary.json.`);
+  chart(item, 'bar', {
+    position: {left: 62, top: 158, width: 548, height: 370}, title: 'Training return distribution',
+    categories: counts.map((_, index) => String(-13 + 2 * index).replace('-', '−')), series: [{name: 'Training sessions', values: counts, fill: C.teal}],
+    barOptions: {direction: 'column', grouping: 'clustered', gapWidth: 22},
+    xAxis: {title: 'Next-session return (%)', textStyle: {fontSize: 19}}, yAxis: {title: 'Sessions', textStyle: {fontSize: 19}, majorGridlines: {fill: C.line, width: 0.8}},
+  });
+  chart(item, 'line', {
+    position: {left: 665, top: 158, width: 548, height: 370}, title: 'Annual peak of trailing volatility',
+    categories: years, series: [{name: 'Annual maximum 20-session volatility', values: years.map(year => yearly.get(year)), line: {fill: C.teal, width: 3}, marker: {symbol: 'circle', size: 5, fill: C.teal}}],
+    xAxis: {title: 'Training year', textStyle: {fontSize: 19}}, yAxis: {title: 'Volatility (pp)', min: 0, textStyle: {fontSize: 19}, majorGridlines: {fill: C.line, width: 0.8}},
+  });
+  text(item, `Mean daily return\n${fmt(data.training_target_statistics.mean)}%`, 72, 565, 340, 76, {fontSize: 27, bold: true});
+  text(item, `Daily standard deviation\n${fmt(data.training_target_statistics.std)} pp`, 473, 565, 360, 76, {fontSize: 27, bold: true});
+  text(item, `Excess kurtosis\n${fmt(data.training_target_excess_kurtosis, 2)}`, 911, 565, 290, 76, {fontSize: 27, bold: true});
 }
-// 5
+
 {
- const s=slide('Features available at the forecast time',
- 'All 23 features use information available after the official close on feature date t. return_1 is the realized return ending at t. return_lag_1 through selected lag_5 use earlier observations. Technical indicators are backward rolling windows. StandardScaler fits only on the applicable training block, including separately within each CV fold. Source: src/pipeline.py FEATURE_COLUMNS, build_features and make_arrays.');
- table(s,[['Feature group','Examples'],['Past returns and momentum','Current return, selected lags, 5/10/20-session momentum'],['Volatility and averages','5/20-session volatility, mean return, distance to SMA'],['Daily price structure','Intraday return, high-low range, overnight gap'],['Trend and calendar','RSI 14, drawdown 60, weekday/month sine and cosine']],[365,771],{height:360,size:25});
- txt(s,`${data.feature_count} numeric features. The target is shifted forward by one observed session.`,72,565,1120,60,28,true,C.teal);
+  const item = slide('Features available at the forecast close', 'All 23 features and causal construction',
+    `Returns and momentum comprise current return, lags 1/2/3/5 and 5/10/20-session momentum, totaling eight columns. Rolling statistics are volatility, mean return and close-to-SMA at 5 and 20 sessions, totaling six. Daily structure has intraday return, range/close and overnight gap. RSI14, drawdown60 and four calendar sine/cosine terms total six. RSI uses simple rolling averages. Every feature is causal. Full definitions are in FEATURE_COLUMNS and build_features in src/pipeline.py. ${SOURCE.protocol}`);
+  table(item, [
+    ['Feature group', 'Count', 'Inputs'],
+    ['Returns and momentum', '8', 'Current return, four lags, 5/10/20-session momentum'],
+    ['Rolling statistics', '6', '5/20-session volatility, means and moving-average distances'],
+    ['Daily price structure', '3', 'Intraday return, high–low range and overnight gap'],
+    ['Trend and calendar', '6', 'RSI 14, drawdown 60, weekday/month sine and cosine'],
+  ], [280, 120, 736], {height: 360});
+  text(item, '23 numeric features use prices available through session t.', 72, 573, 1120, 45, {fontSize: 30, bold: true, color: C.teal});
+  text(item, 'The outcome belongs to the next observed session.', 72, 622, 1120, 36, {fontSize: 25, color: C.muted});
 }
-// 6
+
 {
- const s=slide('Chronological evaluation',
- 'All partitions are chronological. Rows with labels crossing a partition boundary are purged, so the final training target date precedes validation feature dates and validation target dates precede test feature dates. Three TimeSeriesSplit folds use an expanding training block, gap=1 and 252 outer-validation observations. The last 126 sessions inside each fold monitor early stopping. The outer fold never monitors stopping. Source: src/pipeline.py split_dataset and run.');
- const ps=data.partitions;
- table(s,[['Partition','Feature dates','Rows'],...['train','validation','test'].map(k=>[k==='train'?'Training':k==='validation'?'Development validation':'Held-out test',`${ds(ps[k].feature_start)} to ${ds(ps[k].feature_end)}`,String(ps[k].rows)])],[390,566,180],{height:280,size:25});
- txt(s,'Three expanding folds inside training',72,485,1100,48,32,true);
- txt(s,'252 sessions per outer fold. One-row gaps protect label boundaries.\nValidation supports stopping and blend selection. Test supports final evaluation.',72,545,1100,88,25,false,C.muted);
+  const part = data.partitions;
+  const foldNotes = FRAMEWORKS.map(name => {
+    const rows = folds.filter(row => row.model === name);
+    return `${NAMES[name]} outer-fold RMSE mean ${fmt(mean(rows.map(row => row.RMSE)))} and sample SD ${fmt(std(rows.map(row => row.RMSE)))} pp.`;
+  }).join('\n');
+  const item = slide('Chronological evaluation', 'Date partitions, scaling, purging and expanding cross validation',
+    `${SOURCE.protocol} StandardScaler fits each training block and transforms its later blocks. TargetDate must be earlier than the next partition first feature date. Within training, three expanding outer folds use 252 scoring sessions and a one-row gap. Each outer training block holds back 126 sessions to monitor early stopping and purges one additional boundary row. The final fit uses training through 2021 and validation in 2022-2023. Validation guides stopping, blend selection and final candidate selection. Final test outcomes score the selected approach.\n${foldNotes}\nComplete fold scores and dates are in results/cv_metrics.csv.`);
+  table(item, [
+    ['Phase', 'Training', 'Validation', 'Final test'],
+    ['Feature dates', `${ds(part.train.feature_start)}\nto ${ds(part.train.feature_end)}`, `${ds(part.validation.feature_start)}\nto ${ds(part.validation.feature_end)}`, `${ds(part.test.feature_start)}\nto ${ds(part.test.feature_end)}`],
+    ['Rows', String(part.train.rows), String(part.validation.rows), String(part.test.rows)],
+    ['Purpose', 'Fit models\nand scaler', 'Stop training\nand select blend', 'Evaluate the\nselected approach'],
+  ], [180, 318, 319, 319], {height: 305, size: 25});
+  text(item, 'Three expanding folds stay inside the training period.', 72, 517, 1136, 45, {fontSize: 30, bold: true, color: C.teal});
+  text(item, 'Each fold uses 126 sessions for stopping and 252 for scoring.\nTraining-only scaling and one-row gaps protect the time boundaries.', 72, 577, 1136, 75, {fontSize: 26});
 }
-// 7
+
 {
- const s=slide('The five requested frameworks',
- 'All adapters actually train and persist fitted models. Keras uses the PyTorch backend, which is officially supported in Keras 3. Flash is the legacy lightning-flash Task/Trainer API with a custom continuous-feature MLP and regression loss. This is an explicit compatibility adaptation, not the built-in Flash TabularRegressor. Source: src/model_adapters.py and saved metadata in models/<name>/metadata.json. Official Keras backend guide: https://keras.io/getting_started/ . Flash Task documentation: https://lightning-flash.readthedocs.io/en/stable/api/generated/flash.core.model.Task.html .');
- table(s,[['Framework','Model in this experiment'],['XGBoost','Shallow boosted trees, depth 2, up to 160 rounds'],['Keras on PyTorch','Dense layers 64 / 32, ReLU, dropout and L2'],['PyTorch with fastai','tabular_learner, layers 64 / 32, no categorical features'],['PyTorch TabNet','Decision/attention width 8, three decision steps'],['Lightning Flash','Custom Flash Task with a 64 / 32 MLP']],[365,771],{height:410,size:24});
- txt(s,'Baselines: zero return, training mean and Ridge. All models use the same features.',72,605,1115,40,24,false,C.muted);
+  const item = slide('Five framework implementations', 'All required frameworks and actual model architectures',
+    `${SOURCE.deep} XGBoost adds shallow trees to reduce residual errors, using depth 2, maximum 160 trees, learning rate 0.03, subsample/column sample 0.9 and L2 5. Keras 3 uses its official PyTorch backend. fastai uses actual TabularPandas and tabular_learner. Lightning Flash uses a real flash.core.model.Task and flash.Trainer with a custom numeric regression backbone. All three dense networks have 64/32 ReLU hidden layers and a linear output. TabNet uses n_d=n_a=8, three attentive steps, gamma 1.3 and sparse penalty 0.001. Sources https://keras.io/getting_started/ , https://docs.fast.ai/tabular.learner.html , https://github.com/dreamquark-ai/tabnet , https://lightning-flash.readthedocs.io/en/stable/api/generated/flash.core.model.Task.html . Implementations are in src/model_adapters.py. Flash compatibility details are in docs/REPRODUCIBILITY.md.`);
+  table(item, [
+    ['Framework', 'Model and role'],
+    ['XGBoost', 'Boosted trees learn residual errors. Depth 2, up to 160 trees.'],
+    ['Keras on PyTorch', 'Dense network with 64 and 32 ReLU units, dropout and L2.'],
+    ['PyTorch with fastai', 'tabular_learner trains a 64/32 dense regression network.'],
+    ['PyTorch TabNet', 'Three attentive steps select features. Width 8 per step.'],
+    ['Lightning Flash', 'Flash Task and Trainer fit a custom 64/32 dense network.'],
+  ], [330, 806], {height: 420, size: 25});
+  text(item, 'Every framework receives the same features and forecast target.', 72, 619, 1125, 40, {fontSize: 26, color: C.muted});
 }
-// 8
+
 {
- const s=slide('Variation across three training folds',
- 'Results from results/cv_metrics.csv. Means and sample standard deviations across three chronological outer folds. These folds precede the development-validation and test eras. Each outer fold has 252 observations and its own training-only scaler. No test tuning. Source: src/pipeline.py TimeSeriesSplit loop.');
- const stats=(name,key)=>{let a=cv.filter(r=>r.model===name).map(r=>n(r[key]));if(a.length!==3)throw new Error('Expected 3 CV folds');let mean=a.reduce((a,b)=>a+b)/3;return [mean,Math.sqrt(a.reduce((s,v)=>s+(v-mean)**2,0)/2)];};
- table(s,[['Framework','RMSE mean ± SD','MAE mean ± SD','R² mean'],...modelOrder.map(k=>{let r=stats(k,'RMSE'),a=stats(k,'MAE');return[names[k],`${fmt(r[0])} ± ${fmt(r[1])}`,`${fmt(a[0])} ± ${fmt(a[1])}`,fmt(stats(k,'R2')[0])];})],[290,300,300,246],{height:380,size:24});
- txt(s,'RMSE and MAE are in percentage points of daily return. Fold dispersion matters.',72,585,1120,65,26,false,C.muted);
+  const item = slide('Training and error measures', 'Early stopping, baselines, RMSE, MAE and signed R2',
+    `Training minimizes mean squared error. Keras, fastai and Flash use Adam at 0.001 with batches of 64. TabNet uses Adam at 0.01, batch 256 and virtual batch 64. Deep models run at most 40 epochs with patience 5 and restore the best monitored weights. XGBoost uses stopping patience 20. The seed is 42 and Torch has two CPU threads. RMSE and MAE use percentage points. R2 is 1-SSE/SST, where SST measures variation around the evaluation outcome mean. Negative R2 means error exceeds that reference. Fixed zero return, fixed training mean and Ridge with alpha 100 provide simple baselines. Direction accuracy compares actual>0 with forecast>0. ${SOURCE.metrics}`);
+  const measures = [
+    ['RMSE', 'sqrt(mean((actual − forecast)²))', 'Emphasizes large errors. Measured in percentage points.'],
+    ['MAE', 'mean(abs(actual − forecast))', 'Average absolute error. Measured in percentage points.'],
+    ['R²', '1 − squared error / outcome variation', '1 is a perfect fit. Negative values can occur.'],
+  ];
+  measures.forEach(([name, formula, explanation], index) => {
+    const top = 168 + index * 145;
+    text(item, name, 72, top, 150, 52, {fontSize: 37, bold: true, color: C.teal});
+    text(item, formula, 250, top + 2, 930, 45, {fontSize: 29, bold: true});
+    text(item, explanation, 250, top + 61, 930, 49, {fontSize: 26, color: C.muted});
+  });
+  text(item, 'Deep models use up to 40 epochs with early stopping. Baselines are zero return, training mean and Ridge.', 72, 619, 1136, 48, {fontSize: 24});
 }
-// 9
+
 {
- const s=slide('Development validation results',
- 'All figures read directly from results/metrics.csv, validation split. Models monitor this period for early stopping, and the blend weight also uses it. Therefore these are development scores and are optimistic. Model selection uses the lowest validation RMSE, including baselines. The next slide contains untouched test results.');
- table(s,[['Model','RMSE pp','MAE pp','R²','Direction'],...order.map(k=>{let r=score(k,'validation');return[names[k],fmt(r.RMSE,4),fmt(r.MAE),fmt(r.R2,4),pct(r.direction_accuracy)];})],[340,190,190,190,226],{height:440,size:23,pad:6});
- txt(s,`Validation selects ${names[summary.selected_model]} by minimum RMSE, including the baselines.`,72,622,1110,38,24,true,C.teal);
+  const item = slide('Validation chooses the blend', 'Innovation, selection rule, blend formula and validation score',
+    `Validation chooses ${blend.deep_component} among the four deep frameworks by RMSE. Eleven candidate XGBoost weights 0.0 through 1.0 are then scored on the same validation block. The winning weight is ${blend.xgboost_weight}. Prediction=0.1*XGBoost+0.9*TabNet. The blend validation RMSE is ${score('blend', 'validation').RMSE} pp. TabNet alone scores ${score('tabnet', 'validation').RMSE} pp and training mean ${score('training_mean', 'validation').RMSE} pp. Validation also supports stopping and selection, which makes its scores optimistic. The later test evaluates the chosen configuration. The full table is results/metrics.csv and the weight grid is results/blend_selection.json.`);
+  text(item, 'Forecast = 0.10 × XGBoost\n                 + 0.90 × TabNet', 72, 185, 530, 122, {fontSize: 34, bold: true, color: C.teal});
+  text(item, 'The 2022–2023 validation period\nselects the deep component and weight.', 72, 353, 510, 95, {fontSize: 28});
+  text(item, `${fmt(score('blend', 'validation').RMSE)} pp`, 72, 503, 510, 70, {fontSize: 49, bold: true});
+  text(item, 'Validation RMSE of the selected blend', 72, 584, 520, 63, {fontSize: 25, color: C.muted});
+  chart(item, 'line', {
+    position: {left: 634, top: 172, width: 580, height: 430}, title: 'Validation error across blend weights',
+    categories: blend.grid.map(row => fmt(row.xgboost_weight, 1)),
+    series: [{name: 'Validation RMSE', values: blend.grid.map(row => row.RMSE), line: {fill: C.teal, width: 3}, marker: {symbol: 'circle', size: 6, fill: C.teal}}],
+    xAxis: {title: 'XGBoost weight', textStyle: {fontSize: 19}},
+    yAxis: {title: 'RMSE (pp)', min: 1.108, max: 1.124, majorUnit: 0.004, numberFormatCode: '0.000', textStyle: {fontSize: 19}, majorGridlines: {fill: C.line, width: 0.8}},
+  });
 }
-// 10
+
 {
- const s=slide('Held-out test results',
- 'All figures read directly from results/metrics.csv, test split. The prediction models and blend weight are fixed before this period is evaluated. A row winning on this test table is descriptive and does not replace the validation-selected recommendation. Direction accuracy uses the sign of the regression output, with positive defined as return > 0. A zero prediction is classified as nonpositive, so its accuracy is the nonpositive class frequency.');
- table(s,[['Model','RMSE pp','MAE pp','R²','Direction'],...order.map(k=>{let r=score(k);return[names[k],fmt(r.RMSE,4),fmt(r.MAE),fmt(r.R2,4),pct(r.direction_accuracy)];})],[340,190,190,190,226],{height:440,size:23,pad:6});
- txt(s,'Negative R² means worse squared error than the test-period mean reference.',72,622,1120,38,24,false,C.muted);
+  const item = slide('Test results on 709 future sessions', 'Full comparison of all five frameworks, baselines and blend',
+    `${SOURCE.metrics} The test covers feature dates 1 January 2024 through 8 November 2026 and outcomes through 9 November. Validation selected the blend before these outcomes were scored. Keras has the lowest retrospective test RMSE and fastai has the lowest test MAE. The earlier blend selection is retained. The blend direction accuracy is ${pct(selected.direction_accuracy)}, and the training mean matches the majority positive-return class at ${pct(score('training_mean').direction_accuracy)}. Signed R2 values remain in the table. The green row identifies the selected model.`);
+  table(item, [
+    ['Model', 'RMSE (pp)', 'MAE (pp)', 'R²', 'Direction'],
+    ...ORDER.map(name => {
+      const result = score(name);
+      return [NAMES[name], fmt(result.RMSE), fmt(result.MAE), fmt(result.R2), pct(result.direction_accuracy)];
+    }),
+  ], [282, 211, 211, 205, 227], {top: 155, height: 425, size: 24, pad: 6, highlightRows: [9]});
+  text(item, 'Validation selected Blend. Keras has the lowest test RMSE.', 72, 612, 1136, 49, {fontSize: 26, color: C.muted});
 }
-// 11
+
 {
- const selected=summary.selected_model;const r=score(selected);const base=score('zero_return');
- const improvement=100*(n(base.RMSE)-n(r.RMSE))/n(base.RMSE);
- const s=slide('The selected model and baseline comparison',
- `Recommendation selected on validation only: ${selected}. Test RMSE improvement versus zero return is ${improvement.toFixed(3)}%. A positive value is an error reduction and a negative value is an increase. This comparison does not establish an executable trading edge or statistical significance. Model score source: results/metrics.csv and selection source: results/run_summary.json.`);
- txt(s,names[selected],72,165,1100,80,54,true,C.teal);
- txt(s,`Test RMSE  ${fmt(r.RMSE)} pp`,72,270,1100,65,42,true);
- table(s,[['Comparison on held-out test','RMSE pp','R²'],[names[selected],fmt(r.RMSE),fmt(r.R2)],['Zero return baseline',fmt(base.RMSE),fmt(base.R2)]],[620,258,258],{top:375,height:185,size:26});
- txt(s,`Relative RMSE change versus zero return: ${improvement>=0?'reduction':'increase'} of ${fmt(Math.abs(improvement),2)}%.`,72,594,1130,55,27,false,C.muted);
+  const actual = test.map(row => Number(row.target_return));
+  const prediction = test.map(row => Number(row[summary.selected_model]));
+  const item = slide('Forecast behavior on the test period', 'Observed-versus-predicted diagnostics and interpretation',
+    `The plot contains all ${test.length} test outcomes. Both axes use -12 to 8 percentage points. The dashed diagonal represents perfect predictions. Observed sample standard deviation is ${std(actual)} pp, compared with predicted standard deviation ${std(prediction)} pp. Forecasts cluster near zero and capture little observed variation, consistent with R2 ${selected.R2}. Large realized moves receive much smaller forecasts. Source is results/test_predictions.csv.`);
+  chart(item, 'scatter', {
+    position: {left: 55, top: 159, width: 770, height: 459}, title: 'Observed and predicted returns', scatterOptions: {style: 'lineWithMarkers'},
+    series: [
+      {name: 'Blend forecast', xValues: actual, values: prediction, marker: {symbol: 'circle', size: 3, fill: C.teal}, line: {fill: 'none', width: 0}},
+      {name: 'Perfect prediction', xValues: [-12, 8], values: [-12, 8], marker: {symbol: 'none', size: 2}, line: {fill: C.copper, width: 1.5, style: 'dashed'}},
+    ],
+    xAxis: {title: 'Observed return (%)', min: -12, max: 8, majorUnit: 4, textStyle: {fontSize: 20}, majorGridlines: {fill: C.line, width: 0.8}},
+    yAxis: {title: 'Predicted return (%)', min: -12, max: 8, majorUnit: 4, textStyle: {fontSize: 20}, majorGridlines: {fill: C.line, width: 0.8}},
+  });
+  text(item, 'Forecasts cluster\nnear zero', 886, 188, 315, 90, {fontSize: 32, bold: true, color: C.teal});
+  text(item, `Observed variation\n${fmt(std(actual), 3)} pp`, 886, 326, 315, 95, {fontSize: 29});
+  text(item, `Predicted variation\n${fmt(std(prediction), 3)} pp`, 886, 465, 315, 95, {fontSize: 29});
+  text(item, 'Variation is the sample standard deviation. The dashed diagonal represents a perfect forecast.', 72, 627, 1136, 38, {fontSize: 23, color: C.muted});
 }
-// 12
+
 {
- const s=slide('Validation-selected model blending',
- `The best deep component on validation is ${blend.deep_component}. The pipeline evaluates XGBoost weights 0.0, 0.1, ..., 1.0 and chooses the minimum validation RMSE. The selected XGBoost weight is ${blend.xgboost_weight}. Prediction = w*XGBoost + (1-w)*deep model. Test data never chooses the component or weight. This is a blend using a dedicated development-validation block, not out-of-fold stacking. Source: results/blend_selection.json and src/pipeline.py.`);
- chart(s,'line',{position:{left:68,top:165,width:780,height:390},categories:blend.grid.map(r=>fmt(r.xgboost_weight,1)),series:[{name:'Validation RMSE',values:blend.grid.map(r=>r.RMSE),line:{fill:C.teal,width:3},marker:{symbol:'circle',size:7,fill:C.teal}}],hasLegend:false,xAxis:{title:'XGBoost weight',textStyle:{fontSize:20}},yAxis:{title:'RMSE in percentage points',numberFormatCode:'0.000',textStyle:{fontSize:19},majorGridlines:{fill:C.line,width:1}}});
- txt(s,`Deep component\n${names[blend.deep_component]}`,880,185,310,100,28,true);
- txt(s,`XGBoost weight\n${fmt(blend.xgboost_weight,1)}`,880,325,310,95,28,true);
- txt(s,`Test RMSE\n${fmt(score('blend').RMSE)} pp`,880,460,310,95,28,true);
- txt(s,'A blend only helps if its errors complement each other in future data.',72,595,1120,50,27,false,C.muted);
+  const labels = {return_1: 'Current return', return_lag_5: 'Return lag 5', return_lag_1: 'Return lag 1', drawdown_60: '60-session drawdown', rsi_14: '14-session RSI', momentum_20: '20-session momentum'};
+  const important = shap.filter(row => Number(row.mean_abs_shap) > 0).slice(0, 6).reverse();
+  const item = slide('Interpreting the XGBoost forecasts', 'TreeSHAP contributions and feature interpretation',
+    `Native XGBoost TreeSHAP explains validation forecasts using only trees through the best stopping iteration. The chart contains six nonzero features ranked by mean absolute contribution. Current return has the largest attribution. Contributions describe output changes relative to the model bias, and correlated features can share credit. Maximum additivity error is ${shapCheck.max_additivity_error} pp. Sources are results/xgboost_shap_importance.csv and results/shap_check.json. Method https://arxiv.org/abs/1705.07874 and https://xgboost.readthedocs.io/en/stable/prediction.html . The supplied interpretability PDFs are mapped in references/unit_3_4_mapping.md.`);
+  chart(item, 'bar', {
+    position: {left: 52, top: 163, width: 795, height: 433}, title: 'Validation feature contributions', categories: important.map(row => labels[row.feature] || row.feature),
+    series: [{name: 'Mean absolute SHAP contribution', values: important.map(row => Number(row.mean_abs_shap)), fill: C.teal}],
+    barOptions: {direction: 'bar', grouping: 'clustered', gapWidth: 55}, xAxis: {textStyle: {fontSize: 21}},
+    yAxis: {title: 'Mean absolute contribution (pp)', min: 0, max: 0.007, numberFormatCode: '0.000', textStyle: {fontSize: 18}, majorGridlines: {fill: C.line, width: 0.8}},
+    dataLabels: {showValue: true, position: 'outEnd', numberFormatCode: '0.0000', textStyle: {fontSize: 20}},
+  });
+  text(item, 'Current return has\nthe largest attribution', 884, 215, 322, 120, {fontSize: 31, bold: true, color: C.teal});
+  text(item, 'Contributions measure\neffects on the fitted\nmodel output.', 884, 402, 322, 130, {fontSize: 27});
+  text(item, 'TreeSHAP decomposes each forecast into a baseline and feature contributions.', 72, 627, 1136, 39, {fontSize: 24, color: C.muted});
 }
-// 13
+
 {
- const top=shap.slice(0,7).reverse();
- const s=slide('What the XGBoost model uses',
- `Native XGBoost TreeSHAP contributions, pred_contribs=True, explain the validation partition. The chart ranks mean absolute contributions in return percentage points. Maximum prediction-additivity error: ${shapCheck.max_additivity_error}. These importances describe this fitted model and data period. They do not establish economic causation. Correlated features may share attribution. Source: results/xgboost_shap_importance.csv and results/shap_check.json. XGBoost prediction documentation: https://xgboost.readthedocs.io/en/stable/prediction.html .`);
- chart(s,'bar',{position:{left:60,top:160,width:1140,height:410},categories:top.map(r=>r.feature.replaceAll('_',' ')),series:[{name:'Mean absolute TreeSHAP',values:top.map(r=>n(r.mean_abs_shap)),fill:C.teal}],barOptions:{direction:'bar',grouping:'clustered'},hasLegend:false,xAxis:{textStyle:{fontSize:21}},yAxis:{title:'Mean absolute contribution in percentage points',numberFormatCode:'0.000',textStyle:{fontSize:18},majorGridlines:{fill:C.line,width:1}},dataLabels:{showValue:true,position:'outEnd',numberFormatCode:'0.0000',textStyle:{fontSize:18}}});
- txt(s,'Attribution explains predictions. It does not prove a causal market relationship.',72,600,1120,52,27,false,C.muted);
+  const item = slide('Simplicity transparency and efficacy', 'The three explicit qualitative comparison criteria',
+    `Simplicity concerns setup and maintenance for the implemented models. Transparency concerns inspection tools. Efficacy uses the common held-out dates. XGBoost has a compact tabular API and native TreeSHAP. Keras has a readable Dense API. fastai provides a high-level learner and callbacks. Dense networks can use post-hoc attribution. TabNet exposes attentive masks and additional tuning settings. Flash has explicit training steps and requires legacy compatibility pins. Keras has the lowest test RMSE ${score('keras').RMSE}. fastai has the lowest test MAE ${score('fastai').MAE}. TabNet has the lowest standalone deep validation RMSE. ${SOURCE.metrics}`);
+  table(item, [
+    ['Framework', 'Simplicity', 'Transparency', 'Measured efficacy'],
+    ['XGBoost', 'Compact tabular API', 'Native TreeSHAP', `RMSE ${fmt(score('xgboost').RMSE)} pp`],
+    ['Keras', 'Readable Dense API', 'Post-hoc attribution', 'Lowest test RMSE'],
+    ['fastai', 'High-level learner', 'Post-hoc attribution', 'Lowest test MAE'],
+    ['TabNet', 'More tuning settings', 'Attentive feature masks', 'Best deep validation'],
+    ['Lightning Flash', 'Legacy setup required', 'Explicit training steps', `RMSE ${fmt(score('flash').RMSE)} pp`],
+  ], [220, 295, 315, 306], {height: 400, size: 24});
+  text(item, 'The setup comparison refers to the implementations used in this project.', 72, 612, 1136, 49, {fontSize: 26, color: C.muted});
 }
-// 14
+
 {
- const s=slide('Simplicity transparency and efficacy',
- 'Qualitative comparisons concern the implementations in this project, not universal framework rankings. Efficacy uses held-out test RMSE, reported in the final column. Simplicity considers setup and code burden. Transparency concerns tools for inspecting the model, not whether its predictions are causal. Flash requires a custom compatibility adapter for this legacy library. No arbitrary numerical transparency score is invented.');
- table(s,[['Framework','Simplicity','Transparency','Test RMSE pp'],['XGBoost','Compact tree API','TreeSHAP and tree structure',fmt(score('xgboost').RMSE)],['Keras MLP','Compact network API','Weights and post hoc tools',fmt(score('keras').RMSE)],['fastai MLP','High-level learner','Training callbacks, post hoc tools',fmt(score('fastai').RMSE)],['TabNet','More tuning choices','Feature masks, limited causality',fmt(score('tabnet').RMSE)],['Flash MLP','Legacy adapter required','Explicit loop, post hoc tools',fmt(score('flash').RMSE)]],[235,260,410,231],{height:410,size:22});
- txt(s,`Baseline efficacy remains the reference: zero-return RMSE ${fmt(score('zero_return').RMSE)} pp.`,72,600,1130,52,26,false,C.muted);
+  const item = slide('Conclusions and next steps', 'Conclusion, study limitations and future experiments',
+    `Validation selected the 10% XGBoost and 90% TabNet blend. Test RMSE ${selected.RMSE} pp, R2 ${selected.R2} and relative RMSE improvement ${reduction}% over zero return indicate weak daily-return predictability. Direction accuracy ${pct(selected.direction_accuracy)} is below the fixed training mean ${pct(score('training_mean').direction_accuracy)}. The experiment uses one index own OHLC and calendar, one test era and one seed. Future experiments can add rolling retraining, repeated seeds and external variables with correct historical publication lags. Trading evaluation requires instrument, timing and cost assumptions. ${SOURCE.metrics}`, true);
+  text(item, 'The selected blend captures little daily return variation.', 72, 172, 1136, 100, {fontSize: 38, bold: true, color: '#86D2C2'});
+  text(item, `Test RMSE   ${fmt(selected.RMSE)} pp\nTest R²         ${fmt(selected.R2)}`, 72, 305, 520, 110, {fontSize: 32, color: C.white});
+  text(item, `${fmt(reduction, 2)}% RMSE improvement over zero return.\nDirection accuracy ${pct(selected.direction_accuracy)}.\nTraining-mean direction accuracy ${pct(score('training_mean').direction_accuracy)}.`, 692, 305, 510, 142, {fontSize: 27, color: C.white});
+  text(item, 'One index, one test era and one seed limit generalization.\nNext experiments can add rolling retraining and time-aligned external features.', 72, 528, 1136, 103, {fontSize: 28, color: '#D4E2E3'});
 }
-// 15
+
 {
- const chosen=score(summary.selected_model);const mean=score('training_mean');const zero=score('zero_return');
- const reduction=100*(n(zero.RMSE)-n(chosen.RMSE))/n(zero.RMSE);
- const s=slide('Conclusions and limits',
- `The conclusion follows the minimum-validation-RMSE selection and held-out scores. Validation selects ${summary.selected_model}, but predictive skill is very weak: held-out R2 ${chosen.R2}, direction accuracy ${100*n(chosen.direction_accuracy)}%, versus ${100*n(mean.direction_accuracy)}% for the training-mean baseline. Relative RMSE reduction versus zero return is ${reduction}%. These results do not establish a reliable or executable trading edge. Validation scores are optimistic because that partition supports stopping and blending. One index, one test era and a single seed limit generalization. Future work needs a new untouched time window, repeated seeds, true publication lags for macroeconomic features and realistic costs. Source: results/metrics.csv and results/run_summary.json.`);
- txt(s,`Validation selects ${names[summary.selected_model]}. Test R² is ${fmt(chosen.R2,4)}.`,72,165,1110,88,36,true,C.teal);
- txt(s,`Direction accuracy is ${fmt(100*n(chosen.direction_accuracy),2)}%, below the training-mean baseline at ${fmt(100*n(mean.direction_accuracy),2)}%.\nRMSE improves by ${fmt(reduction,2)}% versus zero return.`,72,285,1110,105,28);
- txt(s,'This experiment finds very weak predictive skill. One index, one test era and a single seed limit generalization.',72,410,1110,85,29);
- txt(s,'Validation supports stopping and blending. New observations and trading costs need evaluation before practical use.',72,535,1110,90,29);
+  const forecast = Number(historical[summary.selected_model]);
+  const actual = Number(historical.target_return);
+  const item = slide('Historical prediction demonstration', 'Saved-checkpoint demonstration with a real observed outcome',
+    `Run python src/demo.py --all from the prepared project environment. It rebuilds features, loads the scaler and actual saved checkpoints, and compares predictions with the frozen CSV. The final feature date is ${historical.Date}, with outcome on ${historical.TargetDate}. Sunday 8 November is an observed exchange session in the supplied source. Blend forecast ${forecast}% and actual return ${actual}%. The demo reproduces all nine candidates within 0.00001 percentage points. Thirteen tests have passed, including the five actual framework reloads. This example is a historical replay. Sources are src/demo.py and the final row of results/test_predictions.csv.`);
+  text(item, `Information through ${ds(historical.Date)}\nOutcome on ${ds(historical.TargetDate)}`, 72, 163, 1136, 88, {fontSize: 30});
+  text(item, 'Blend forecast', 72, 315, 500, 45, {fontSize: 28, bold: true});
+  text(item, `${forecast >= 0 ? '+' : '−'}${fmt(Math.abs(forecast))}%`, 72, 377, 500, 88, {fontSize: 64, bold: true, color: C.teal});
+  text(item, 'Observed return', 711, 315, 490, 45, {fontSize: 28, bold: true});
+  text(item, `${actual >= 0 ? '+' : '−'}${fmt(Math.abs(actual))}%`, 711, 377, 490, 88, {fontSize: 64, bold: true, color: C.copper});
+  text(item, 'python src/demo.py --all', 72, 550, 1136, 49, {fontSize: 31, bold: true});
+  text(item, 'Loads saved checkpoints and reproduces the frozen historical forecasts.', 72, 613, 1136, 46, {fontSize: 25, color: C.muted});
 }
-// 16
+
 {
- const s=slide('Demonstration and viva discussion',
- 'Demo sequence: open README.md; activate the documented environment; run the tests; open notebooks/Team_12_Analysis.ipynb; run python src/demo.py --all for a quick prepared prediction; inspect results/metrics.csv and the report; optionally reproduce python src/pipeline.py, which takes longer. Explain the selected-model rule before showing test results. Viva prompts: Why forecast returns? Why chronological splits? How does the target shift work? Why can R² be negative? What does a baseline tell us? What does SHAP explain? Which part of Flash is customized? GitHub publication is a separate user account action and must not be presented as completed without an actual repository URL.');
- txt(s,'1  Inspect the frozen source data and provenance.',72,175,1110,58,31);
- txt(s,'2  Explain the target shift and the chronological partitions.',72,265,1110,68,31);
- txt(s,'3  Compare results with the simple baselines.',72,365,1110,58,31);
- txt(s,'4  Show saved models, the notebook and TreeSHAP output.',72,455,1110,68,31);
- txt(s,'Viva focus: leakage, negative R², blending and the limits of a daily forecast.',72,575,1110,64,28,true,C.teal);
+  const item = slide('References and project materials', 'Primary sources, four-unit mapping, report, notebook and GitHub',
+    `${SOURCE.index}\n${SOURCE.data}\nChen and Guestrin, 2016, XGBoost https://arxiv.org/abs/1603.02754 . Arik and Pfister, 2019 preprint, TabNet https://arxiv.org/abs/1908.07442 . Lundberg and Lee, 2017, SHAP https://arxiv.org/abs/1705.07874 . The four units are mapped in references/unit_1_2_mapping.md and references/unit_3_4_mapping.md. The specific Nifty Commodities project brief controls the topic. Repository https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction is private and the instructor needs access. Report deliverables/Team_12_Project_Report.pdf, notebook notebooks/Team_12_Analysis.ipynb and viva guide docs/VIVA_GUIDE.md contain further details.`);
+  text(item, 'Primary references', 72, 167, 620, 44, {fontSize: 30, bold: true, color: C.teal});
+  const references = [
+    ['NSE Indices', 'Historical data and Nifty Commodities factsheet', 'https://www.niftyindices.com/reports/historical-data'],
+    ['Chen and Guestrin, 2016', 'XGBoost', 'https://arxiv.org/abs/1603.02754'],
+    ['Arik and Pfister, 2019', 'TabNet', 'https://arxiv.org/abs/1908.07442'],
+    ['Lundberg and Lee, 2017', 'SHAP', 'https://arxiv.org/abs/1705.07874'],
+  ];
+  references.forEach(([author, subject, url], index) => {
+    const top = 239 + index * 100;
+    const label = text(item, author, 72, top, 640, 36, {fontSize: 26, bold: true});
+    label.hyperlink = {uri: url, isExternal: true};
+    text(item, subject, 72, top + 39, 650, 48, {fontSize: 23, color: C.muted});
+  });
+  text(item, 'Project materials', 813, 167, 395, 45, {fontSize: 30, bold: true, color: C.teal});
+  text(item, 'Report\nDetailed methods and results', 813, 247, 395, 88, {fontSize: 26});
+  text(item, 'Executed notebook\nCode, graphs and saved outputs', 813, 362, 395, 88, {fontSize: 26});
+  const link = text(item, 'GitHub repository', 813, 498, 395, 45, {fontSize: 29, bold: true, color: C.teal});
+  link.hyperlink = {uri: 'https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction', isExternal: true};
+  text(item, 'Darshansg76\nTeam12-Nifty-Commodities-\nReturn-Prediction', 813, 550, 395, 91, {fontSize: 22, color: C.muted});
 }
-const stamp=Date.now();const candidate=path.join(TMP,`candidate-${stamp}.pptx`);
-await (await PresentationFile.exportPptx(p)).save(candidate);
-await fs.mkdir(path.join(TMP,'validated'),{recursive:true});
-const finalValidated=path.join(TMP,'validated',`validated-${stamp}.pptx`);
-const result=await finalizePresentation({workspaceDir:ROOT,candidatePath:candidate,finalPath:finalValidated,
-  pythonExecutable:path.join(DEP,'python/python.exe'),
-  integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),
-  layoutValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_layout_geometry.py'),
-  layoutArgs:['--expected-slide-size-emu','12192000,6858000','--validate-bullet-geometry','--validate-heading-fit',...tableOwners.flatMap(n=>['--require-native-table-slide',String(n)])],
-  requiredNativeTableOwnerSlides:tableOwners,requiredNativeChartOwnerSlides:chartOwners,
-  materializeLiteralChartWorkbooks:true,fontPolicy:{basis:'design',families:[FONT]},verifyArtifactToolImport:true,
-  receiptPath:path.join(TMP,`validation-${stamp}.json`),
+
+if (p.slides.items.length !== 16) throw new Error('The presentation outline requires 16 slides.');
+const stamp = Date.now();
+const candidatePath = path.join(BUILD, `candidate-${stamp}.pptx`);
+const validatedPath = path.join(BUILD, 'validated', `validated-${stamp}.pptx`);
+await (await PresentationFile.exportPptx(p)).save(candidatePath);
+const requiredTables = [...new Set(tableSlides)];
+const requiredCharts = [...new Set(chartSlides)];
+const result = await finalizePresentation({
+  workspaceDir: ROOT, candidatePath, finalPath: validatedPath, explicitTotalSlideCount: 16,
+  pythonExecutable: path.join(DEP, 'python/python.exe'),
+  integrityValidatorPath: path.join(SKILL, 'container_tools/inspect_presentation_package_integrity.py'),
+  layoutValidatorPath: path.join(SKILL, 'container_tools/inspect_presentation_layout_geometry.py'),
+  layoutArgs: ['--expected-slide-size-emu', '12192000,6858000', '--validate-bullet-geometry', '--validate-heading-fit', ...requiredTables.flatMap(number => ['--require-native-table-slide', String(number)])],
+  requiredNativeTableOwnerSlides: requiredTables, requiredNativeChartOwnerSlides: requiredCharts,
+  materializeLiteralChartWorkbooks: true, fontPolicy: {basis: 'design', families: [FONT]}, verifyArtifactToolImport: true,
+  receiptPath: path.join(BUILD, `validation-${stamp}.json`),
 });
-const out=path.join(ROOT,'deliverables/Team_12_Presentation.pptx');await fs.copyFile(finalValidated,out);
-const checked=await PresentationFile.importPptx(await FileBlob.load(out));
-for(const [i,s] of checked.slides.items.entries()){
-  const blob=await checked.export({slide:s,format:'png',scale:1});
-  await fs.writeFile(path.join(TMP,`slide-${String(i+1).padStart(2,'0')}.png`),new Uint8Array(await blob.arrayBuffer()));
+const checked = await PresentationFile.importPptx(await FileBlob.load(validatedPath));
+for (const [index, item] of checked.slides.items.entries()) {
+  const png = await checked.export({slide: item, format: 'png', scale: 1});
+  await fs.writeFile(path.join(BUILD, `slide-${String(index + 1).padStart(2, '0')}.png`), new Uint8Array(await png.arrayBuffer()));
 }
-await fs.writeFile(path.join(TMP,'build_result.json'),JSON.stringify({slides:p.slides.items.length,out,tableOwners,chartOwners,result},null,2));
-console.log(`Saved ${out} with ${p.slides.items.length} slides and rendered all final slides.`);
+await fs.writeFile(path.join(BUILD, 'content_coverage.json'), JSON.stringify(coverage, null, 2));
+await fs.writeFile(path.join(BUILD, 'build_result.json'), JSON.stringify({slides: checked.slides.items.length, candidatePath, validatedPath, tableSlides: requiredTables, chartSlides: requiredCharts, result}, null, 2));
+await fs.copyFile(validatedPath, path.join(ROOT, 'deliverables/Team_12_Presentation.pptx'));
+console.log(`Saved and rendered ${checked.slides.items.length} slides. Native tables on ${requiredTables.join(', ')}. Native charts on ${requiredCharts.join(', ')}.`);
