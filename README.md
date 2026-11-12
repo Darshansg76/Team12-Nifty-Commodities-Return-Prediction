@@ -1,6 +1,6 @@
-# Nifty Commodities Benchmark Return Prediction
+# Nifty Commodities return prediction
 
-Team 12 mini project for Machine Learning with Business Data, UE24AM342AA4.
+Team 12 · Machine Learning with Business Data
 
 | Member | SRN |
 |---|---|
@@ -8,70 +8,70 @@ Team 12 mini project for Machine Learning with Business Data, UE24AM342AA4.
 | Dhanraj Rathod | PES1UG24AM359 |
 | Shridhar Umesh Golipalle | PES1UG25AM814 |
 
+We ask whether the Nifty Commodities index price history can predict its **next trading-session percentage return**. For example, a close moving from 5,000 to 5,050 is a 1% return. This is regression because the answer is a number. The index tracks listed companies in commodity-related industries.
+
 ## Start here
 
-- [Project report PDF](deliverables/Team_12_Project_Report.pdf) and [editable Word report](deliverables/Team_12_Project_Report.docx).
-- [PowerPoint presentation](deliverables/Team_12_Presentation.pptx), including speaker notes and editable tables/charts.
-- [Executed analysis notebook](notebooks/Team_12_Analysis.ipynb), including real data checks, EDA and comparison outputs.
-- [Viva preparation](docs/VIVA_GUIDE.md) and [requirement coverage](docs/REQUIREMENTS_COVERAGE.md).
+Open [the presentation](deliverables/Team_12_Presentation.pptx) for the complete explanation in 16 slides. The [PDF report](deliverables/Team_12_Project_Report.pdf) gives the detailed methodology and results; [the executed notebook](notebooks/Team_12_Analysis.ipynb) shows calculations and graphs.
 
-All five required frameworks were trained on real official index observations: XGBoost, Keras 3, fastai, PyTorch TabNet and Lightning Flash. Three baselines and a validation-selected blend complete the comparison. Synthetic fixtures occur only in software tests.
+From this project folder in PowerShell, run:
+
+```powershell
+.\run_demo.ps1
+```
+
+This loads the selected saved model and shows one real historical forecast beside its observed outcome. It does not retrain or claim to predict a new live session. Use `.\run_demo.ps1 -All` to compare every saved candidate.
+
+## How the project works
+
+1. **Prepare the data.** Official NSE Indices history has 4,182 sessions. The first 538 lack open/high/low, leaving 3,644 complete sessions from 27 February 2012 to 9 November 2026. No prices are invented.
+2. **Explore the data.** Inspect returns, changing volatility and feature correlations. Distribution statistics use training data.
+3. **Create 23 clues.** Features describe recent returns, averages/risk, daily price structure and trend/calendar information. They use only the current or earlier session. The weekday uses a seven-day cycle because the source includes 18 special weekend sessions.
+4. **Train the five required frameworks.** XGBoost uses decision trees. Keras, fastai and Lightning Flash use small neural networks. TabNet uses attention to select useful features. All receive the same inputs and dates.
+5. **Choose on validation, then evaluate on test.** Training is before 2022; validation is 2022–2023; test is 2024 onward. Scaling learns from training only. Three earlier time periods provide additional checks. Early stopping ends training when validation error stops improving.
+6. **Compare and explain.** RMSE/MAE measure error; R² measures fit. We also compare simplicity and transparency. Zero return, training mean and Ridge are baselines. An optional weighted blend checks whether combining models helps; TreeSHAP explains XGBoost forecasts.
 
 ## What the experiment found
 
-The validation rule selects a blend of **10% XGBoost and 90% TabNet**. On 709 frozen test observations from 2024 onward, its RMSE is **1.179378 percentage points**, MAE **0.846268**, R2 **0.002145**, and derived direction accuracy **51.48%**. This represents very weak return predictability. The zero-return RMSE is 1.181296 pp, so the blend improves RMSE by just 0.001918 pp. The training-mean direction benchmark scores 55.71%, above the blend.
+Validation selected **fastai**. The later test contains **709 observations**:
 
-Keras has the lowest retrospective test RMSE, 1.172971 pp. The project keeps the earlier validation selection and reports this distinction. No trading profit or reliable investment signal is claimed. Every model's signed scores appear in [metrics.csv](results/metrics.csv).
+| Candidate | RMSE (pp) | MAE (pp) | R² |
+|---|---:|---:|---:|
+| Zero return | 1.1813 | 0.8428 | -0.0011 |
+| Training mean | 1.1807 | 0.8385 | -0.0001 |
+| Ridge | 1.1887 | 0.8482 | -0.0137 |
+| XGBoost | 1.1786 | 0.8379 | 0.0034 |
+| Keras | 1.1667 | 0.8485 | 0.0235 |
+| fastai | 1.1821 | 0.8329 | -0.0025 |
+| TabNet | 1.2013 | 0.8306 | -0.0354 |
+| Lightning Flash | 1.1741 | 0.8329 | 0.0110 |
+| Optional blend | 1.1821 | 0.8329 | -0.0025 |
 
-## Data and forecast definition
+Lower RMSE/MAE and higher R² are better. RMSE and MAE are in return percentage points. A negative R² is valid and means the model misses more variation than the retrospective evaluation-mean reference.
 
-The source is NSE Indices Limited's Nifty Commodities **equity price index**, not commodity spot prices or a total return index. The downloader retains 4,182 observations from 2010 through 9 November 2026. The first 538 sessions lack official open/high/low, so modeling uses the continuous complete era of 3,644 sessions beginning 27 February 2012. The request freeze is 10 November 2026, which was a trading holiday. All raw responses and hashes are retained in [provenance.json](data/raw/provenance.json).
+**The results show little reliable forecasting power.** Keras has the lowest test RMSE, but we retain the model chosen earlier on validation. The optional blend is 0% XGBoost and 100% fastai here, so it gives no extra gain. One index and one final test era limit the conclusion. No trading profit is established.
 
-After the official close of session t, predict `100 * (Close[next observed session] / Close[t] - 1)`. Features contain only current or past OHLC and known calendar information. Twenty-three features produce 3,584 labeled rows after warm-up. The purged partitions contain 2,380 training rows, 493 validation rows and 709 test rows, with two boundary rows excluded.
-
-Training ends in 2021. Validation covers 2022-2023. The final test starts in 2024. All frameworks share three expanding pre-2022 outer folds, with 252 scoring sessions and a separate 126-session inner stopping period per fold. Scaling fits only the corresponding fitting block. Final test labels never enter framework adapters or blend selection.
-
-## Run the prepared project
-
-In PowerShell from this folder:
-
-```powershell
-.\.venv\Scripts\python.exe src\demo.py --all
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
-
-The historical demo loads actual saved checkpoints, reconstructs features and checks the predictions against saved results. Its default is the final evaluated feature date. It is a frozen historical replay.
-
-To reproduce the full experiment:
+## Rebuild the complete project
 
 ```powershell
 .\run_all.ps1
 ```
 
-On another computer, install Python 3.12, then run `./setup.ps1` first, or create a virtual environment and `pip install -r requirements.txt`. The prepared environment is local and excluded from Git and the ZIP. Default training uses the included frozen data. `./run_all.ps1 -RefreshData` explicitly repeats the source requests through the same cutoff.
+This retrains all models, runs the checks, executes the notebook, rebuilds Word/PDF/PPT, refreshes this summary and checksums, and recreates `Team_12_Completed_Project.zip` beside the project folder. Every training run fits models again; old prediction caches are not reused. Normal runs use the included frozen data.
 
-See [reproducibility instructions](docs/REPRODUCIBILITY.md) for the document, presentation and environment details. All **13 tests pass**, including actual checkpoint reload checks for the five frameworks. See [validation evidence](docs/VALIDATION.md).
+The prepared computer has the Python environment and Codex authoring runtime. On a new computer with Python 3.12, use `.\setup.ps1`, then `.\run_all.ps1 -ResultsOnly` for training, checks and the notebook. Full slide/report authoring also needs the runtime described in [reproduction details](docs/REPRODUCIBILITY.md). The finished Word, PDF and PPT open independently of that runtime.
 
-## Folder contents
+## Where the code is
 
-| Folder | Contents |
+| File or folder | Purpose |
 |---|---|
-| `src` | Downloader, causal training pipeline, actual framework adapters, saved-model demo |
-| `data/raw` | Official JSON responses, two CSV snapshots and provenance hashes |
-| `data/processed` | Engineered features and purged chronological partitions |
-| `models` | Final and fold checkpoints, train-only scaler, metadata and signed prediction caches |
-| `results` | Per-row predictions, validation/test metrics, CV scores, annual diagnostics and figures |
-| `notebooks` | Executed analysis notebook |
-| `deliverables` | Report and presentation |
-| `references` | Source inventory, course mappings and official factsheet |
-| `tests` | Causality, independent saved-score checks and model reload checks |
-| `scripts` | Reusable notebook, report and slide builders |
+| `src/pipeline.py` | Six commented steps: load, features, historical checks, train, select, evaluate |
+| `src/model_adapters.py` | Training and saved-model loading for each framework |
+| `src/demo.py` | Replay a saved prediction without training |
+| `src/download_data.py` | Optional official-data download |
+| `data` | Original data, source hashes and prepared partitions |
+| `models` | Trained checkpoints and the saved feature scaler |
+| `results` | Predictions, metrics and figures |
+| `scripts` | Builders for the notebook, report, PPT and ZIP |
 
-## Assignment and GitHub
-
-The supplied specific Nifty Commodities brief controls the topic despite a conflicting ID 12 title in the generic list. [Source decisions](docs/SOURCE_DECISIONS.md) record this and the user's clarification permitting AI assistance.
-
-The completed project is published at [Darshansg76/Team12-Nifty-Commodities-Return-Prediction](https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction). The repository is **private**, and `main` is the default branch. The local repository tracks `origin/main`. To share it for viva, grant the instructor or teammates repository access through GitHub. After future local commits, `./publish_github.ps1` pushes updates to the existing origin.
-
-Official data and teaching materials retain their respective owners' rights. Course PDFs are referenced by filename and physical page number; original lecture files are not bundled in this repository.
-
+The [private GitHub repository](https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction) contains the code and deliverables. Other people need repository access to open it. Course mappings and the original-source inventory are in `references`; assignment coverage and technical details are in `docs`.

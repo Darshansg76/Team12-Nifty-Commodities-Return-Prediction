@@ -92,19 +92,21 @@ def image(file,caption,width=6.3):
     for run in cap.runs:run.font.size=Pt(8.5);run.italic=True
     md.append(f'![{caption}](../results/figures/{file})\n')
 def f(v,n=4):return f'{float(v):.{n}f}'
+def score(name,split='test'):
+    return next(r for r in scores if r['model']==name and r['split']==split)
 def metric_rows(split):
     return [[r['model'],f(r['RMSE']),f(r['MAE']),f(r['R2']),f(float(r['direction_accuracy'])*100,2)+'%'] for r in scores if r['split']==split]
 
 selected=summary['selected_model']; sv=summary['selected_validation']; st=summary['selected_test']
 title('Nifty Commodities Benchmark Return Prediction',True)
 p('Machine Learning with Business Data mini project')
-p('Team 12   |   Prepared 11 November 2026')
+p('Team 12   |   Updated 12 November 2026')
 table(['Member','SRN'],[['Darshan Govekar','PES1UG24AM355'],['Dhanraj Rathod','PES1UG24AM359'],['Shridhar Umesh Golipalle','PES1UG25AM814']],[3.6,2.6])
 h('Abstract')
 p(f'This project predicts the next observed trading session return of the Nifty Commodities price index from information available after the current close. We compare XGBoost, Keras, fastai, PyTorch TabNet and Lightning Flash using the same 23 numeric features and chronological partitions. Official NSE Indices data provide {data["raw_rows"]:,} complete OHLC observations from 27 February 2012 to 9 November 2026. Three expanding folds within the training era use separate inner stopping periods, followed by a 2022 to 2023 development validation period and a frozen test period beginning in 2024.')
-p(f'The lowest validation RMSE selects {selected}. Its test RMSE is {st["RMSE"]:.4f} percentage points, MAE is {st["MAE"]:.4f}, and R2 is {st["R2"]:.4f}. These figures come directly from saved predictions. The comparison retains simple baselines, negative R2 values and unsuccessful complex models. A validation-selected convex blend and TreeSHAP explanations extend the course methods. The study evaluates forecast accuracy and does not claim executable trading profits.')
+p(f'The lowest validation RMSE selects {selected}. Its test RMSE is {st["RMSE"]:.4f} percentage points, MAE is {st["MAE"]:.4f}, and R2 is {st["R2"]:.4f}. The later test shows little forecasting advantage over simple predictions. A weighted average of two models is an optional extension, and TreeSHAP explains the XGBoost model. These results concern forecast errors; they do not establish trading profits.')
 h('Project scope')
-p('The supplied Nifty Commodities brief controls this implementation. It asks for EDA, framework comparison, a report, a PowerPoint and viva preparation. The generic project list assigns a different title to ID 12. That inconsistency is recorded in the source notes and does not change the supplied topic.')
+p('We study one question: can the index price history help predict its next session return? The workflow is data preparation, EDA, feature creation, training the five required frameworks, and comparing their results. The report explains each step; the presentation follows the same order.')
 
 title('Introduction and Data')
 h('Forecasting objective')
@@ -144,19 +146,20 @@ table(['Feature group','Definitions available at close t'],[
 ['Price position','Close relative to trailing 5 and 20 session means'],
 ['Intraday conditions','Close/open return, high-low range/close, open/previous close gap'],
 ['Oscillator and drawdown','14-session simple-average RSI and close relative to 60-session maximum'],
-['Known calendar','Sine and cosine encodings for weekday and month'],
+['Known calendar','Weekday uses a seven-day cycle; month uses a twelve-month cycle'],
 ],[1.5,4.8])
 p('There are 23 input columns. The 60-session drawdown creates a 59-row warm-up and the final unlabeled row is removed. Features use neither centered windows nor backward filling. The exact feature order is saved in models/features.json. Correlated features can share explanatory credit, so a large attribution is not evidence of an independent economic cause.')
+p(f'The source includes {data["calendar_encoding"]["weekend_source_sessions"]} special weekend sessions. The weekday encoding keeps all seven days distinct. This avoids making Saturday share Monday values or Sunday share Tuesday values. Weekend sessions remain real observations and the target is still the next observed session.')
 
 title('Methodology and Validation')
 parts=data['partitions']
 table(['Partition','Feature dates','Rows'],[[n,parts[n]['feature_start'][:10]+' to '+parts[n]['feature_end'][:10],parts[n]['rows']] for n in ['train','validation','test']],[1.3,4,1])
 p('The training cutoff is 31 December 2021 and the development validation cutoff is 31 December 2023. Boundary purging removes a row whenever its outcome reaches the next partition first forecast date. The test starts in 2024 and remains untouched during fitting, stopping and selection. StandardScaler learns the mean and population standard deviation from training features only. Each later partition uses that same transformation. XGBoost receives the same transformed inputs for a consistent comparison, although trees do not require scaling.')
 h('Expanding cross validation')
-p('Three expanding outer folds lie entirely inside the pre-2022 training era. Each outer score covers 252 sessions with a one-row gap. Within each fold training block, the last 126 sessions monitor early stopping and one additional row separates them from fitting. Scaling uses only the inner fitting block. The outer fold outcomes never monitor training. This follows the time-based validation requirements in Unit 1 page 81 and Unit 2 page 59. [3, 4, 5]')
+p('As an additional historical check, we repeat training and scoring in three earlier periods. Each check trains on the past and scores the following 252 sessions. A separate 126-session block controls when training stops. A boundary row is removed so its target cannot reach the next block. The scaler learns only from the fitting block. This is expanding cross validation, following Unit 1 page 81 and Unit 2 page 59. [3, 4, 5]')
 p('All five frameworks use the same fold indices, features, target, CPU setting and seed 42. Architecture settings are intentionally compact. The project does not claim an exhaustive search or identical parameter counts across different model families. Final fitting uses the full pre-2022 training block and monitors the 2022 to 2023 validation block. No post-selection refit changes the frozen test predictions.')
 h('Metrics and selection')
-p('RMSE = sqrt(mean((y - prediction)^2)) emphasizes large errors. MAE = mean(abs(y - prediction)) measures typical absolute error. R2 = 1 - sum((y - prediction)^2) / sum((y - test mean)^2) can be negative. Direction accuracy compares whether y > 0 and prediction > 0. An exact zero prediction counts as nonpositive. This is a derived directional diagnostic, not a separately trained classifier.')
+p('RMSE = sqrt(mean((y - prediction)^2)) gives more weight to large errors. MAE = mean(abs(y - prediction)) is the average absolute error. Lower is better for both. R2 = 1 - sum((y - prediction)^2) / sum((y - evaluation mean)^2); higher is better and negative values are possible. Direction accuracy checks whether the forecast sign matches the actual sign, treating zero as nonpositive. It is an extra diagnostic derived from regression.')
 p('The lowest development validation RMSE selects the recommendation from all models and baselines. The report displays every frozen test score for comparison. A model that happens to score best on the test is descriptive and does not replace the validation-selected recommendation.')
 
 title('Framework Implementations')
@@ -168,9 +171,10 @@ table(['Framework','Actual fitted model and settings'],[
 ['Lightning Flash','A real Flash Task and Flash Trainer around a PyTorch 64 and 32 ReLU MLP, dropout 0.1 and Adam at 0.001 with weight decay 0.001.'],
 ],[1.4,4.9])
 p('Deep models use at most 40 epochs and stopping patience 5. The dense models use batches of 64. TabNet uses batches of 256 with virtual batches of 64. MSE is the regression objective. Best monitored weights are restored before predictions. Model metadata save the actual stopping epoch, package versions, histories and elapsed training-plus-prediction time. [6, 7, 8, 9]')
-p('The Flash implementation uses its general Task API rather than claiming the legacy Flash TabularRegressor convenience wrapper. Flash 0.8.2 runs with PyTorch Lightning 1.9.5 and TorchMetrics 0.10.3. Its legacy checkpoint callback refers to np.Inf, so the adapter supplies a documented compatibility alias to np.inf with NumPy 2. Setuptools 80.9.0 supplies pkg_resources. These details are captured in the environment lock and code.')
-h('Baselines and project extension')
-p(f'The zero-return and fixed training-mean predictors make no use of test outcomes. Ridge regression with alpha 100 provides a simple linear comparison. For the extension, validation selects {blend["deep_component"]} among the four deep models. Eleven candidate weights from 0 to 1 combine that prediction with XGBoost. The selected XGBoost weight is {blend["xgboost_weight"]:.1f}. A boundary weight is retained if that is what validation selects. This project blend is not presented as a method taught in the supplied interpretability folder.')
+p('Lightning Flash uses its real Task and Trainer APIs with a small regression network. Its older release needs pinned dependencies. The exact compatibility settings are recorded in docs/REPRODUCIBILITY.md and the environment lock. This keeps setup details separate from the forecasting method.')
+h('Simple baselines and optional blend')
+p('Zero return predicts no change. Training mean predicts the average training return every day. Ridge is a regularized linear regression. These baselines help judge whether a complex model adds value. They use no test outcomes for fitting.')
+p(f'The optional blend is a weighted average of XGBoost and a deep model. Validation chooses {blend["deep_component"]} as the deep component and checks eleven weights. It selects {blend["xgboost_weight"]:.0%} XGBoost and {1-blend["xgboost_weight"]:.0%} {blend["deep_component"]}. A zero XGBoost weight means the blend is simply the deep model; it provides no extra gain. The main recommendation remains the single candidate with the lowest validation RMSE.')
 
 title('Development Results')
 h('Outer fold cross validation')
@@ -183,7 +187,7 @@ table(['Model','RMSE mean and sample SD','MAE mean and sample SD'],cvtable,[1.3,
 p('These three outer-fold scores measure sensitivity to historical eras. Their sample standard deviation describes variation across three periods and is not a confidence interval. The same stopping protocol precedes every outer score. Complete per-fold dates, row counts and signed R2 values are saved in results/cv_metrics.csv.')
 h('Development validation scores')
 table(['Model','RMSE pp','MAE pp','R2','Direction'],metric_rows('validation'),[1.7,1.15,1.15,1.1,1.2])
-p(f'The selection rule chooses {selected}, with validation RMSE {sv["RMSE"]:.4f} pp. Validation also monitors early stopping and selects the blend component and weight. Its scores therefore contain selection optimism. Only the later frozen test estimates performance after those choices. The blend is a candidate in this rule and receives no guaranteed preference.')
+p(f'The selection rule chooses {selected}, with validation RMSE {sv["RMSE"]:.4f} pp. The optional blend ties it because its selected weight reduces to the same model. Validation also controls when training stops, so these scores may be optimistic. The later test checks performance after these choices are fixed.')
 
 title('Frozen Test Results')
 table(['Model','RMSE pp','MAE pp','R2','Direction'],metric_rows('test'),[1.7,1.15,1.15,1.1,1.2])
@@ -194,23 +198,23 @@ p('A negative R2 means that the model performs worse than predicting the mean of
 title('Interpretability and Practical Comparison')
 image('06_explanations.png','Figure 4 Validation TreeSHAP attributions for the stopped XGBoost model')
 p(f'Native XGBoost TreeSHAP decomposes each prediction into a bias term and feature contributions. The computation uses only trees through the best stopping iteration. The maximum numerical additivity error is {shap["max_additivity_error"]:.2e} pp. On validation data, the three largest mean absolute attributions are {", ".join(r["feature"] for r in imp[:3])}. These describe the fitted forecast, not causal drivers or investment value. [10]')
-table(['Framework','Simplicity','Transparency and practical efficacy'],[
-['XGBoost','Short tabular workflow','TreeSHAP and tree structure aid inspection. Compare measured errors to simple baselines.'],
-['Keras','Compact fit and callback API','Dense weights need attribution or sensitivity analysis. Torch backend shares the common runtime.'],
-['fastai','High-level tabular learner','Convenient callbacks and transforms. Dense networks remain difficult to interpret directly.'],
-['TabNet','More architecture settings','Attentive masks and aggregate importances add model explanations. Masks are not causal evidence.'],
-['Flash','Most legacy setup work here','Task and Trainer expose training steps. Compatibility pins add maintenance cost.'],
-],[1.2,1.5,3.6])
+table(['Framework','Simplicity','Transparency','Efficacy'],[
+['XGBoost','Short tabular API','TreeSHAP used here',f'Test RMSE {f(score("xgboost")["RMSE"])} pp'],
+['Keras','Readable layer API','Needs extra attribution',f'Test RMSE {f(score("keras")["RMSE"])} pp'],
+['fastai','High-level learner','Needs extra attribution',f'Test RMSE {f(score("fastai")["RMSE"])} pp'],
+['TabNet','More settings','Feature masks available',f'Test RMSE {f(score("tabnet")["RMSE"])} pp'],
+['Flash','Legacy setup work','Needs extra attribution',f'Test RMSE {f(score("flash")["RMSE"])} pp'],
+],[1.0,1.35,1.7,2.25])
 p('Simplicity and transparency are reasoned qualitative comparisons, not invented numeric ratings. Efficacy is the observed RMSE, MAE, R2 and direction accuracy on identical dates. The simple baseline remains preferable when added complexity fails to improve the chosen validation criterion.')
 
 title('Conclusion and Reproducibility')
-p(f'The completed comparison selects {selected} under the stated validation rule. Its frozen test RMSE is {st["RMSE"]:.4f} pp and R2 is {st["R2"]:.4f}, indicating very weak predictive skill. The blend improves RMSE over zero return by only 0.001918 pp. Its direction accuracy of 51.48% falls below the training-mean benchmark at 55.71%. These results do not establish a reliable forecasting advantage. The blend and model explanations extend the analysis without using final test labels to optimize the system.')
+p(f'Validation selects {selected}. On the later test it records RMSE {st["RMSE"]:.4f} pp, compared with {float(score("zero_return")["RMSE"]):.4f} pp for zero return. Its R2 is {st["R2"]:.4f} and direction accuracy is {st["direction_accuracy"]:.2%}, compared with {float(score("training_mean")["direction_accuracy"]):.2%} for the training-mean baseline. This is very weak predictive skill. The lowest test RMSE belongs to {summary["best_test_model_descriptive_only"]}, but that observation does not change the earlier validation choice. The optional blend adds no gain in this run.')
 h('Limitations')
 p('One index and one final test era limit generalization. Inputs contain only the index own OHLC history and known calendar values. They omit macroeconomic releases, exchange rates, commodity futures, news and fundamentals. The experiment uses one seed, so it does not estimate neural initialization uncertainty. Historical data can be revised by the provider.')
 p('The final model remains frozen at its original training cutoff, which makes evaluation auditable but can become stale. Rolling retraining and additional independent eras would be the next experiment. They must be specified before looking at new outcomes. A signal computed after the official close cannot assume execution at that same closing price. No trading return, Sharpe ratio or profit claim is made.')
 h('Files and commands')
-p('The project includes the raw source responses and provenance, processed partitions, actual framework checkpoints, predictions, metrics, figures, an executed analysis notebook, editable presentation, report and viva guide. From a Python 3.12 environment, install requirements.txt, then run python src/pipeline.py. Run python -m unittest discover -s tests -v to verify causality, split isolation and the saved metrics. The local Windows launcher uses the prepared .venv environment.')
-p('Model caches carry a signature of the source CSV and training code. Code or data changes force new prediction caches. Downloading is a separate explicit command, so reproduction uses the frozen snapshot by default. The project is published in a private GitHub repository at https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction on the main branch. Grant the instructor repository access before sharing the viva link.')
+p('Start with README.md for the short explanation and file map. Run .\\run_demo.ps1 for one saved historical prediction. Run .\\run_all.ps1 to retrain, test, rebuild the notebook, Word report, PDF and PowerPoint, and refresh the submission ZIP. The full authoring command uses the prepared Codex runtime; on a computer with only Python, .\\run_all.ps1 -ResultsOnly rebuilds the experiment and notebook.')
+p('Each full training run fits every model again. There is no prediction-cache shortcut. Downloading is an explicit option, so normal runs use the included frozen data. The code and deliverables are in the private GitHub repository https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction on main. Other people need repository access to open it.')
 h('Connection to the four units')
 table(['Course material','Application'],[
 ['Unit 1 pp 81 and 145 to 163','Time-based forecasting and regression evaluation with signed R2'],
@@ -233,9 +237,6 @@ refs=[
 '[10] Lundberg, S. and Lee, S. I. 2017. A Unified Approach to Interpreting Model Predictions. https://arxiv.org/abs/1705.07874. Native contributions: https://xgboost.readthedocs.io/en/stable/python/python_api.html.',
 ]
 for ref in refs:p(ref)
-h('Resolution of source inconsistencies')
-p('The specific project brief names Nifty Commodities, while the generic list assigns investor risk tolerance to Project ID 12. This submission follows the specific brief and the user topic. The team PDF supplies the full names and SRNs. The user clarified that the old prohibition on AI assistance no longer applies. No claim of unaided authorship is made.')
-p('Unit 1 examples constrain or take the absolute value of R2, which is unsuitable for held-out evaluation. This implementation preserves signed R2. The supplied SHAP lecture cites arXiv 1602.04938, which is the LIME paper. This report cites the original SHAP paper instead. The interpretability folder name mentions blending, but its PDFs do not develop the blend used here.')
 
 doc.core_properties.title='Nifty Commodities Benchmark Return Prediction'
 doc.core_properties.author='Team 12'

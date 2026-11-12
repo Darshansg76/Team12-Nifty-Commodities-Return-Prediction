@@ -61,7 +61,7 @@
   "n_train": 2000,
   "n_validation": 126,
   "target_unit": "percentage points",
-  "elapsed_seconds": 0.016,
+  "elapsed_seconds": 0.015,
   "validation_mse": 1.40973240275199,
   "test_used_for_training": false
 }

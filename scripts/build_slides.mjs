@@ -9,7 +9,7 @@ const SKILL = process.env.PRESENTATIONS_SKILL_DIR || 'C:/Users/darsh/.codex/plug
 process.env.RUNTIME_NODE_MODULES ||= path.join(DEP, 'node/node_modules');
 const {Presentation, PresentationFile, FileBlob} = await import(pathToFileURL(path.join(DEP, 'node/node_modules/@oai/artifact-tool/dist/artifact_tool.mjs')));
 const {finalizePresentation, resolvePresentationFont, applyPresentationChartFont} = await import(pathToFileURL(path.join(SKILL, 'container_tools/artifact_tool_utils.mjs')));
-const BUILD = path.join(ROOT, '.build/slides_refined');
+const BUILD = path.join(ROOT, '.build/slides_simple');
 await fs.mkdir(BUILD, {recursive: true});
 await fs.mkdir(path.join(BUILD, 'validated'), {recursive: true});
 
@@ -76,7 +76,10 @@ function std(values) {
 }
 const selected = score(summary.selected_model);
 const historical = test.at(-1);
-const reduction = 100 * (Number(score('zero_return').RMSE) - Number(selected.RMSE)) / Number(score('zero_return').RMSE);
+const rmseDifference = Number(selected.RMSE) - Number(score('zero_return').RMSE);
+const bestTestRMSE = [...FRAMEWORKS].sort((a, b) => Number(score(a).RMSE) - Number(score(b).RMSE))[0];
+const bestTestMAE = [...FRAMEWORKS].sort((a, b) => Number(score(a).MAE) - Number(score(b).MAE))[0];
+const bestDeepValidation = blend.deep_component;
 const SOURCE = {
   data: 'NSE Indices historical data https://www.niftyindices.com/reports/historical-data . Frozen official responses, retrieval times and SHA256 hashes are in data/raw/provenance.json.',
   index: 'NSE Indices Nifty Commodities factsheet dated 30 October 2026 https://www.niftyindices.com/Factsheet/ind_nifty_commodities.pdf . The index contains listed commodity-related companies. The modeled series is a price index.',
@@ -217,21 +220,21 @@ function chart(item, type, config) {
   });
   text(item, `Mean daily return\n${fmt(data.training_target_statistics.mean)}%`, 72, 565, 340, 76, {fontSize: 27, bold: true});
   text(item, `Daily standard deviation\n${fmt(data.training_target_statistics.std)} pp`, 473, 565, 360, 76, {fontSize: 27, bold: true});
-  text(item, `Excess kurtosis\n${fmt(data.training_target_excess_kurtosis, 2)}`, 911, 565, 290, 76, {fontSize: 27, bold: true});
+  text(item, `Training range\n${fmt(data.training_target_statistics.min, 2)}% to +${fmt(data.training_target_statistics.max, 2)}%`, 911, 565, 300, 76, {fontSize: 26, bold: true});
 }
 
 {
-  const item = slide('Features available at the forecast close', 'All 23 features and causal construction',
-    `Returns and momentum comprise current return, lags 1/2/3/5 and 5/10/20-session momentum, totaling eight columns. Rolling statistics are volatility, mean return and close-to-SMA at 5 and 20 sessions, totaling six. Daily structure has intraday return, range/close and overnight gap. RSI14, drawdown60 and four calendar sine/cosine terms total six. RSI uses simple rolling averages. Every feature is causal. Full definitions are in FEATURE_COLUMNS and build_features in src/pipeline.py. ${SOURCE.protocol}`);
+  const item = slide('What the models learn from', 'All 23 features, their meaning and seven-day weekday encoding',
+    `A feature is a numeric clue given to a model. Returns and momentum describe recent price changes: current return, lags 1/2/3/5 and 5/10/20-session momentum total eight columns. Six rolling statistics describe recent averages and volatility. Three daily structure features describe intraday return, range and overnight gap. RSI compares recent up and down moves, and drawdown measures distance below a recent high. With four calendar columns, this final group has six features. Weekday sine/cosine use 2*pi*dayofweek/7, and month uses 2*pi*(month-1)/12. The official complete-OHLC sample has ${data.calendar_encoding.weekend_source_sessions} weekend sessions. Seven days keep Saturday distinct from Monday and Sunday distinct from Tuesday. Every feature uses the current or earlier session only. Full definitions are in src/pipeline.py. ${SOURCE.protocol}`);
   table(item, [
     ['Feature group', 'Count', 'Inputs'],
-    ['Returns and momentum', '8', 'Current return, four lags, 5/10/20-session momentum'],
-    ['Rolling statistics', '6', '5/20-session volatility, means and moving-average distances'],
-    ['Daily price structure', '3', 'Intraday return, high–low range and overnight gap'],
-    ['Trend and calendar', '6', 'RSI 14, drawdown 60, weekday/month sine and cosine'],
+    ['Recent price changes', '8', 'Today’s return, earlier returns and recent price trends'],
+    ['Recent averages and risk', '6', 'Average return, volatility and distance from moving averages'],
+    ['Daily price structure', '3', 'Open-to-close change, daily range and overnight gap'],
+    ['Trend and calendar', '6', 'RSI, distance from a recent high, weekday and month'],
   ], [280, 120, 736], {height: 360});
-  text(item, '23 numeric features use prices available through session t.', 72, 573, 1120, 45, {fontSize: 30, bold: true, color: C.teal});
-  text(item, 'The outcome belongs to the next observed session.', 72, 622, 1120, 36, {fontSize: 25, color: C.muted});
+  text(item, '23 features use information available by the current close.', 72, 557, 1120, 45, {fontSize: 28, bold: true, color: C.teal});
+  text(item, `Weekday uses all 7 days; ${data.calendar_encoding.weekend_source_sessions} special weekend sessions are retained.`, 72, 615, 1120, 42, {fontSize: 26, color: C.muted});
 }
 
 {
@@ -246,10 +249,10 @@ function chart(item, type, config) {
     ['Phase', 'Training', 'Validation', 'Final test'],
     ['Feature dates', `${ds(part.train.feature_start)}\nto ${ds(part.train.feature_end)}`, `${ds(part.validation.feature_start)}\nto ${ds(part.validation.feature_end)}`, `${ds(part.test.feature_start)}\nto ${ds(part.test.feature_end)}`],
     ['Rows', String(part.train.rows), String(part.validation.rows), String(part.test.rows)],
-    ['Purpose', 'Fit models\nand scaler', 'Stop training\nand select blend', 'Evaluate the\nselected approach'],
+    ['Purpose', 'Learn patterns\nand scaling', 'Stop training\nand choose a model', 'Check later\nforecast errors'],
   ], [180, 318, 319, 319], {height: 305, size: 25});
-  text(item, 'Three expanding folds stay inside the training period.', 72, 517, 1136, 45, {fontSize: 30, bold: true, color: C.teal});
-  text(item, 'Each fold uses 126 sessions for stopping and 252 for scoring.\nTraining-only scaling and one-row gaps protect the time boundaries.', 72, 577, 1136, 75, {fontSize: 26});
+  text(item, 'Always learn from earlier dates and evaluate on later dates.', 72, 512, 1136, 45, {fontSize: 30, bold: true, color: C.teal});
+  text(item, 'Three earlier periods provide extra historical checks.\nScaling learns from training only; boundary rows are removed\nwhen their next-session outcome reaches the following period.', 72, 568, 1136, 95, {fontSize: 25});
 }
 
 {
@@ -257,13 +260,13 @@ function chart(item, type, config) {
     `${SOURCE.deep} XGBoost adds shallow trees to reduce residual errors, using depth 2, maximum 160 trees, learning rate 0.03, subsample/column sample 0.9 and L2 5. Keras 3 uses its official PyTorch backend. fastai uses actual TabularPandas and tabular_learner. Lightning Flash uses a real flash.core.model.Task and flash.Trainer with a custom numeric regression backbone. All three dense networks have 64/32 ReLU hidden layers and a linear output. TabNet uses n_d=n_a=8, three attentive steps, gamma 1.3 and sparse penalty 0.001. Sources https://keras.io/getting_started/ , https://docs.fast.ai/tabular.learner.html , https://github.com/dreamquark-ai/tabnet , https://lightning-flash.readthedocs.io/en/stable/api/generated/flash.core.model.Task.html . Implementations are in src/model_adapters.py. Flash compatibility details are in docs/REPRODUCIBILITY.md.`);
   table(item, [
     ['Framework', 'Model and role'],
-    ['XGBoost', 'Boosted trees learn residual errors. Depth 2, up to 160 trees.'],
-    ['Keras on PyTorch', 'Dense network with 64 and 32 ReLU units, dropout and L2.'],
-    ['PyTorch with fastai', 'tabular_learner trains a 64/32 dense regression network.'],
-    ['PyTorch TabNet', 'Three attentive steps select features. Width 8 per step.'],
-    ['Lightning Flash', 'Flash Task and Trainer fit a custom 64/32 dense network.'],
+    ['XGBoost', 'Adds small decision trees to correct earlier errors.'],
+    ['Keras on PyTorch', 'Builds a neural network from simple layers.'],
+    ['PyTorch with fastai', 'Trains a neural network with a high-level learner.'],
+    ['PyTorch TabNet', 'Learns which features to attend to at each step.'],
+    ['Lightning Flash', 'Organizes a neural network with a Task and Trainer.'],
   ], [330, 806], {height: 420, size: 25});
-  text(item, 'Every framework receives the same features and forecast target.', 72, 619, 1125, 40, {fontSize: 26, color: C.muted});
+  text(item, 'All use the same inputs. Dense networks have 64 and 32 hidden units.', 72, 619, 1125, 40, {fontSize: 25, color: C.muted});
 }
 
 {
@@ -280,36 +283,32 @@ function chart(item, type, config) {
     text(item, formula, 250, top + 2, 930, 45, {fontSize: 29, bold: true});
     text(item, explanation, 250, top + 61, 930, 49, {fontSize: 26, color: C.muted});
   });
-  text(item, 'Deep models use up to 40 epochs with early stopping. Baselines are zero return, training mean and Ridge.', 72, 619, 1136, 48, {fontSize: 24});
+  text(item, 'Lower RMSE / MAE and higher R² are better. Compare against simple baselines.', 72, 619, 1136, 48, {fontSize: 25});
 }
 
 {
-  const item = slide('Validation chooses the blend', 'Innovation, selection rule, blend formula and validation score',
-    `Validation chooses ${blend.deep_component} among the four deep frameworks by RMSE. Eleven candidate XGBoost weights 0.0 through 1.0 are then scored on the same validation block. The winning weight is ${blend.xgboost_weight}. Prediction=0.1*XGBoost+0.9*TabNet. The blend validation RMSE is ${score('blend', 'validation').RMSE} pp. TabNet alone scores ${score('tabnet', 'validation').RMSE} pp and training mean ${score('training_mean', 'validation').RMSE} pp. Validation also supports stopping and selection, which makes its scores optimistic. The later test evaluates the chosen configuration. The full table is results/metrics.csv and the weight grid is results/blend_selection.json.`);
-  text(item, 'Forecast = 0.10 × XGBoost\n                 + 0.90 × TabNet', 72, 185, 530, 122, {fontSize: 34, bold: true, color: C.teal});
-  text(item, 'The 2022–2023 validation period\nselects the deep component and weight.', 72, 353, 510, 95, {fontSize: 28});
-  text(item, `${fmt(score('blend', 'validation').RMSE)} pp`, 72, 503, 510, 70, {fontSize: 49, bold: true});
-  text(item, 'Validation RMSE of the selected blend', 72, 584, 520, 63, {fontSize: 25, color: C.muted});
-  chart(item, 'line', {
-    position: {left: 634, top: 172, width: 580, height: 430}, title: 'Validation error across blend weights',
-    categories: blend.grid.map(row => fmt(row.xgboost_weight, 1)),
-    series: [{name: 'Validation RMSE', values: blend.grid.map(row => row.RMSE), line: {fill: C.teal, width: 3}, marker: {symbol: 'circle', size: 6, fill: C.teal}}],
-    xAxis: {title: 'XGBoost weight', textStyle: {fontSize: 19}},
-    yAxis: {title: 'RMSE (pp)', min: 1.108, max: 1.124, majorUnit: 0.004, numberFormatCode: '0.000', textStyle: {fontSize: 19}, majorGridlines: {fill: C.line, width: 0.8}},
-  });
+  const item = slide('Choosing the model', 'Validation-only model choice and the optional blend outcome',
+    `Choose the candidate with the lowest 2022-2023 validation RMSE, including simple baselines. That selects ${NAMES[summary.selected_model]} at ${selected ? score(summary.selected_model, 'validation').RMSE : ''} pp. The five required framework validation scores appear here; the report has all nine candidates. As an optional extension, eleven weights combine XGBoost and the best validation deep model, ${NAMES[blend.deep_component]}. Validation chooses ${100*blend.xgboost_weight}% XGBoost and ${100*(1-blend.xgboost_weight)}% ${NAMES[blend.deep_component]}. Here the zero XGBoost weight reduces the blend to fastai and adds no gain. Validation also controls stopping, so its scores may be optimistic. Test outcomes do not choose this model. Sources: results/metrics.csv and results/blend_selection.json.`);
+  const ranked = [...FRAMEWORKS].sort((a, b) => Number(score(a, 'validation').RMSE) - Number(score(b, 'validation').RMSE));
+  table(item, [
+    ['Required framework', 'Validation RMSE (pp)'],
+    ...ranked.map(name => [NAMES[name], fmt(score(name, 'validation').RMSE)]),
+  ], [650, 486], {height: 310, size: 28, highlightRows: [ranked.indexOf(summary.selected_model)+1]});
+  text(item, `Validation selects ${NAMES[summary.selected_model]}; the test comes afterward.`, 72, 515, 1136, 46, {fontSize: 31, bold: true, color: C.teal});
+  text(item, `Optional blend: ${fmt(blend.xgboost_weight*100, 0)}% XGBoost + ${fmt((1-blend.xgboost_weight)*100, 0)}% ${NAMES[blend.deep_component]}.\nIt matches fastai here and provides no extra gain.`, 72, 583, 1136, 76, {fontSize: 27, color: C.muted});
 }
 
 {
-  const item = slide('Test results on 709 future sessions', 'Full comparison of all five frameworks, baselines and blend',
-    `${SOURCE.metrics} The test covers feature dates 1 January 2024 through 8 November 2026 and outcomes through 9 November. Validation selected the blend before these outcomes were scored. Keras has the lowest retrospective test RMSE and fastai has the lowest test MAE. The earlier blend selection is retained. The blend direction accuracy is ${pct(selected.direction_accuracy)}, and the training mean matches the majority positive-return class at ${pct(score('training_mean').direction_accuracy)}. Signed R2 values remain in the table. The green row identifies the selected model.`);
+  const item = slide(`Test results on ${test.length} later sessions`, 'Full comparison of all five frameworks, baselines and optional blend',
+    `${SOURCE.metrics} The test covers feature dates 1 January 2024 through 8 November 2026 and outcomes through 9 November. Validation selected ${NAMES[summary.selected_model]} before these outcomes were scored. ${NAMES[bestTestRMSE]} has the lowest retrospective test RMSE and ${NAMES[bestTestMAE]} the lowest test MAE among the five frameworks. The validation choice is retained. Direction accuracy is ${pct(selected.direction_accuracy)} for the selected model and ${pct(score('training_mean').direction_accuracy)} for the training-mean baseline. The blend duplicates fastai here. Signed R2 values remain in the table. The green row identifies the model selected on validation.`);
   table(item, [
     ['Model', 'RMSE (pp)', 'MAE (pp)', 'R²', 'Direction'],
     ...ORDER.map(name => {
       const result = score(name);
       return [NAMES[name], fmt(result.RMSE), fmt(result.MAE), fmt(result.R2), pct(result.direction_accuracy)];
     }),
-  ], [282, 211, 211, 205, 227], {top: 155, height: 425, size: 24, pad: 6, highlightRows: [9]});
-  text(item, 'Validation selected Blend. Keras has the lowest test RMSE.', 72, 612, 1136, 49, {fontSize: 26, color: C.muted});
+  ], [282, 211, 211, 205, 227], {top: 155, height: 425, size: 24, pad: 6, highlightRows: [ORDER.indexOf(summary.selected_model)+1]});
+  text(item, `Validation selected ${NAMES[summary.selected_model]}. ${NAMES[bestTestRMSE]} has the lowest test RMSE.`, 72, 612, 1136, 49, {fontSize: 26, color: C.muted});
 }
 
 {
@@ -320,7 +319,7 @@ function chart(item, type, config) {
   chart(item, 'scatter', {
     position: {left: 55, top: 159, width: 770, height: 459}, title: 'Observed and predicted returns', scatterOptions: {style: 'lineWithMarkers'},
     series: [
-      {name: 'Blend forecast', xValues: actual, values: prediction, marker: {symbol: 'circle', size: 3, fill: C.teal}, line: {fill: 'none', width: 0}},
+      {name: `${NAMES[summary.selected_model]} forecast`, xValues: actual, values: prediction, marker: {symbol: 'circle', size: 3, fill: C.teal}, line: {fill: 'none', width: 0}},
       {name: 'Perfect prediction', xValues: [-12, 8], values: [-12, 8], marker: {symbol: 'none', size: 2}, line: {fill: C.copper, width: 1.5, style: 'dashed'}},
     ],
     xAxis: {title: 'Observed return (%)', min: -12, max: 8, majorUnit: 4, textStyle: {fontSize: 20}, majorGridlines: {fill: C.line, width: 0.8}},
@@ -351,44 +350,44 @@ function chart(item, type, config) {
 
 {
   const item = slide('Simplicity transparency and efficacy', 'The three explicit qualitative comparison criteria',
-    `Simplicity concerns setup and maintenance for the implemented models. Transparency concerns inspection tools. Efficacy uses the common held-out dates. XGBoost has a compact tabular API and native TreeSHAP. Keras has a readable Dense API. fastai provides a high-level learner and callbacks. Dense networks can use post-hoc attribution. TabNet exposes attentive masks and additional tuning settings. Flash has explicit training steps and requires legacy compatibility pins. Keras has the lowest test RMSE ${score('keras').RMSE}. fastai has the lowest test MAE ${score('fastai').MAE}. TabNet has the lowest standalone deep validation RMSE. ${SOURCE.metrics}`);
+    `Simplicity means how easy these implementations are to set up and read. Transparency means how predictions can be inspected. Efficacy means the measured errors on the same dates. XGBoost has a compact API and native TreeSHAP used in this project. Keras has readable layers and fastai a high-level learner. Their dense networks need additional attribution to explain individual predictions. TabNet provides feature masks, but only the XGBoost TreeSHAP explanation was computed here. Flash requires legacy compatibility pins. ${NAMES[bestTestRMSE]} has the lowest test RMSE; ${NAMES[bestTestMAE]} has the lowest test MAE; ${NAMES[bestDeepValidation]} has the lowest deep validation RMSE. A simpler library is not automatically the most accurate. ${SOURCE.metrics}`);
   table(item, [
     ['Framework', 'Simplicity', 'Transparency', 'Measured efficacy'],
-    ['XGBoost', 'Compact tabular API', 'Native TreeSHAP', `RMSE ${fmt(score('xgboost').RMSE)} pp`],
-    ['Keras', 'Readable Dense API', 'Post-hoc attribution', 'Lowest test RMSE'],
-    ['fastai', 'High-level learner', 'Post-hoc attribution', 'Lowest test MAE'],
-    ['TabNet', 'More tuning settings', 'Attentive feature masks', 'Best deep validation'],
-    ['Lightning Flash', 'Legacy setup required', 'Explicit training steps', `RMSE ${fmt(score('flash').RMSE)} pp`],
+    ['XGBoost', 'Short tabular API', 'TreeSHAP used here', `RMSE ${fmt(score('xgboost').RMSE)} pp`],
+    ['Keras', 'Readable layers', 'Needs extra attribution', bestTestRMSE === 'keras' ? 'Lowest test RMSE' : `RMSE ${fmt(score('keras').RMSE)} pp`],
+    ['fastai', 'High-level learner', 'Needs extra attribution', summary.selected_model === 'fastai' ? 'Chosen by validation' : `RMSE ${fmt(score('fastai').RMSE)} pp`],
+    ['TabNet', 'More settings', 'Feature masks available', bestTestMAE === 'tabnet' ? 'Lowest test MAE' : `RMSE ${fmt(score('tabnet').RMSE)} pp`],
+    ['Lightning Flash', 'Legacy setup needed', 'Needs extra attribution', `RMSE ${fmt(score('flash').RMSE)} pp`],
   ], [220, 295, 315, 306], {height: 400, size: 24});
-  text(item, 'The setup comparison refers to the implementations used in this project.', 72, 612, 1136, 49, {fontSize: 26, color: C.muted});
+  text(item, 'Efficacy means measured accuracy; simplicity and transparency are separate criteria.', 72, 612, 1136, 49, {fontSize: 24, color: C.muted});
 }
 
 {
   const item = slide('Conclusions and next steps', 'Conclusion, study limitations and future experiments',
-    `Validation selected the 10% XGBoost and 90% TabNet blend. Test RMSE ${selected.RMSE} pp, R2 ${selected.R2} and relative RMSE improvement ${reduction}% over zero return indicate weak daily-return predictability. Direction accuracy ${pct(selected.direction_accuracy)} is below the fixed training mean ${pct(score('training_mean').direction_accuracy)}. The experiment uses one index own OHLC and calendar, one test era and one seed. Future experiments can add rolling retraining, repeated seeds and external variables with correct historical publication lags. Trading evaluation requires instrument, timing and cost assumptions. ${SOURCE.metrics}`, true);
-  text(item, 'The selected blend captures little daily return variation.', 72, 172, 1136, 100, {fontSize: 38, bold: true, color: '#86D2C2'});
-  text(item, `Test RMSE   ${fmt(selected.RMSE)} pp\nTest R²         ${fmt(selected.R2)}`, 72, 305, 520, 110, {fontSize: 32, color: C.white});
-  text(item, `${fmt(reduction, 2)}% RMSE improvement over zero return.\nDirection accuracy ${pct(selected.direction_accuracy)}.\nTraining-mean direction accuracy ${pct(score('training_mean').direction_accuracy)}.`, 692, 305, 510, 142, {fontSize: 27, color: C.white});
-  text(item, 'One index, one test era and one seed limit generalization.\nNext experiments can add rolling retraining and time-aligned external features.', 72, 528, 1136, 103, {fontSize: 28, color: '#D4E2E3'});
+    `Validation selected ${NAMES[summary.selected_model]}. Its later test RMSE is ${selected.RMSE} pp and R2 ${selected.R2}. The zero-return RMSE is ${score('zero_return').RMSE}; the selected model is ${Math.abs(rmseDifference)} pp ${rmseDifference > 0 ? 'worse' : 'better'}. ${NAMES[bestTestRMSE]} has the lowest test RMSE, but it was not the validation choice. The optional blend gives no additional gain here. Direction accuracy ${pct(selected.direction_accuracy)} is below the training-mean baseline ${pct(score('training_mean').direction_accuracy)}. These results do not establish a reliable forecasting advantage. The experiment has one index, one test era and one seed. Rolling retraining and external variables with known publication times are sensible next experiments. ${SOURCE.metrics}`, true);
+  text(item, 'Past prices alone give little reliable forecasting power here.', 72, 172, 1136, 100, {fontSize: 38, bold: true, color: '#86D2C2'});
+  text(item, `${NAMES[summary.selected_model]} test RMSE   ${fmt(selected.RMSE)} pp\nZero-return RMSE   ${fmt(score('zero_return').RMSE)} pp\n${NAMES[summary.selected_model]} test R²          ${fmt(selected.R2)}`, 72, 307, 580, 159, {fontSize: 29, color: C.white});
+  text(item, `${NAMES[bestTestRMSE]} has the lowest test RMSE.\nKeep the earlier validation choice.\nThe optional blend adds no gain.`, 728, 307, 476, 159, {fontSize: 27, color: C.white});
+  text(item, 'Limits: one index, one later test period and one random seed.\nNext: retrain over time and add features available at the forecast date.', 72, 537, 1136, 96, {fontSize: 28, color: '#D4E2E3'});
 }
 
 {
   const forecast = Number(historical[summary.selected_model]);
   const actual = Number(historical.target_return);
   const item = slide('Historical prediction demonstration', 'Saved-checkpoint demonstration with a real observed outcome',
-    `Run python src/demo.py --all from the prepared project environment. It rebuilds features, loads the scaler and actual saved checkpoints, and compares predictions with the frozen CSV. The final feature date is ${historical.Date}, with outcome on ${historical.TargetDate}. Sunday 8 November is an observed exchange session in the supplied source. Blend forecast ${forecast}% and actual return ${actual}%. The demo reproduces all nine candidates within 0.00001 percentage points. Thirteen tests have passed, including the five actual framework reloads. This example is a historical replay. Sources are src/demo.py and the final row of results/test_predictions.csv.`);
+    `Run .\\run_demo.ps1 from the project folder to show the selected saved model, or add -All to show all nine candidates. It rebuilds the features with a seven-day weekday cycle, loads the saved scaler and checkpoints, and checks against the saved historical predictions. Feature date ${historical.Date}; outcome ${historical.TargetDate}; forecast ${forecast}%; actual ${actual}%. Sunday 8 November is a real observed exchange session. This is a historical replay, not a new live forecast. The full .\\run_all.ps1 command retrains every model, runs tests, executes the notebook, rebuilds Word/PDF/PPT, and refreshes checksums and the ZIP. No prediction cache bypasses training. -ResultsOnly supports experiment reproduction without the slide-authoring runtime. Sources: src/demo.py, run_demo.ps1, run_all.ps1 and results/test_predictions.csv.`);
   text(item, `Information through ${ds(historical.Date)}\nOutcome on ${ds(historical.TargetDate)}`, 72, 163, 1136, 88, {fontSize: 30});
-  text(item, 'Blend forecast', 72, 315, 500, 45, {fontSize: 28, bold: true});
+  text(item, `${NAMES[summary.selected_model]} forecast`, 72, 315, 500, 45, {fontSize: 28, bold: true});
   text(item, `${forecast >= 0 ? '+' : '−'}${fmt(Math.abs(forecast))}%`, 72, 377, 500, 88, {fontSize: 64, bold: true, color: C.teal});
   text(item, 'Observed return', 711, 315, 490, 45, {fontSize: 28, bold: true});
   text(item, `${actual >= 0 ? '+' : '−'}${fmt(Math.abs(actual))}%`, 711, 377, 490, 88, {fontSize: 64, bold: true, color: C.copper});
-  text(item, 'python src/demo.py --all', 72, 550, 1136, 49, {fontSize: 31, bold: true});
-  text(item, 'Loads saved checkpoints and reproduces the frozen historical forecasts.', 72, 613, 1136, 46, {fontSize: 25, color: C.muted});
+  text(item, '.\\run_demo.ps1       Show this saved prediction', 72, 544, 1136, 45, {fontSize: 28, bold: true});
+  text(item, '.\\run_all.ps1           Rebuild the complete project', 72, 606, 1136, 45, {fontSize: 28, color: C.muted});
 }
 
 {
   const item = slide('References and project materials', 'Primary sources, four-unit mapping, report, notebook and GitHub',
-    `${SOURCE.index}\n${SOURCE.data}\nChen and Guestrin, 2016, XGBoost https://arxiv.org/abs/1603.02754 . Arik and Pfister, 2019 preprint, TabNet https://arxiv.org/abs/1908.07442 . Lundberg and Lee, 2017, SHAP https://arxiv.org/abs/1705.07874 . The four units are mapped in references/unit_1_2_mapping.md and references/unit_3_4_mapping.md. The specific Nifty Commodities project brief controls the topic. Repository https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction is private and the instructor needs access. Report deliverables/Team_12_Project_Report.pdf, notebook notebooks/Team_12_Analysis.ipynb and viva guide docs/VIVA_GUIDE.md contain further details.`);
+    `${SOURCE.index}\n${SOURCE.data}\nChen and Guestrin, 2016, XGBoost https://arxiv.org/abs/1603.02754 . Arik and Pfister, 2019 preprint, TabNet https://arxiv.org/abs/1908.07442 . Lundberg and Lee, 2017, SHAP https://arxiv.org/abs/1705.07874 . The four units are mapped in references/unit_1_2_mapping.md and references/unit_3_4_mapping.md. The specific Nifty Commodities brief controls the topic. Start with README.md for the plain-language project explanation, file map and commands. The report gives the complete methodology and the executed notebook shows the calculations. Repository https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction is private.`);
   text(item, 'Primary references', 72, 167, 620, 44, {fontSize: 30, bold: true, color: C.teal});
   const references = [
     ['NSE Indices', 'Historical data and Nifty Commodities factsheet', 'https://www.niftyindices.com/reports/historical-data'],
@@ -403,8 +402,8 @@ function chart(item, type, config) {
     text(item, subject, 72, top + 39, 650, 48, {fontSize: 23, color: C.muted});
   });
   text(item, 'Project materials', 813, 167, 395, 45, {fontSize: 30, bold: true, color: C.teal});
-  text(item, 'Report\nDetailed methods and results', 813, 247, 395, 88, {fontSize: 26});
-  text(item, 'Executed notebook\nCode, graphs and saved outputs', 813, 362, 395, 88, {fontSize: 26});
+  text(item, 'README and report\nExplanation, methods and results', 813, 247, 395, 88, {fontSize: 26});
+  text(item, 'Executed notebook\nCalculations and graphs', 813, 362, 395, 88, {fontSize: 26});
   const link = text(item, 'GitHub repository', 813, 498, 395, 45, {fontSize: 29, bold: true, color: C.teal});
   link.hyperlink = {uri: 'https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction', isExternal: true};
   text(item, 'Darshansg76\nTeam12-Nifty-Commodities-\nReturn-Prediction', 813, 550, 395, 91, {fontSize: 22, color: C.muted});

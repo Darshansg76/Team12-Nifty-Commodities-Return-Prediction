@@ -158,6 +158,10 @@ All rolling windows end at the feature date. The initial rolling-window warm-up
 and the final unobserved target are excluded. Chronological boundaries use
 feature dates through 2021, 2022–2023, and 2024 onward. A boundary row is purged
 when its outcome date reaches the next partition's first feature date.
+
+The official sample includes special Saturday and Sunday sessions. Weekday
+features use a **seven-day** cycle, so every calendar day stays distinct.
+The source sessions remain in the data; we never invent missing calendar days.
 """),
         code("""feature_groups = [
     ('Current and lagged returns', 'return_1; return_lag_1/2/3/5', '100 × close-to-close percentage change, with stated backward lags'),
@@ -168,7 +172,7 @@ when its outcome date reaches the next partition's first feature date.
     ('Intraday and range', 'intraday_return; range_pct; overnight_gap', 'Close/Open return; (High-Low)/Close; Open/previous Close gap'),
     ('Oscillator', 'rsi_14', 'RSI from trailing 14-session mean upward/downward price changes'),
     ('Drawdown', 'drawdown_60', '100 × (Close[t]/trailing 60-session maximum Close - 1)'),
-    ('Calendar', 'weekday_sin/cos; month_sin/cos', 'Cyclical encodings computed from feature date only'),
+    ('Calendar', 'weekday_sin/cos; month_sin/cos', 'Seven-day weekday cycle and twelve-month cycle, from feature date only'),
 ]
 display(pd.DataFrame(feature_groups, columns=['Group', 'Columns', 'Definition']))
 assert len(FEATURE_COLUMNS) == 23
@@ -326,6 +330,8 @@ w = blend['xgboost_weight']
 for p in predictions.values():
     np.testing.assert_allclose(p['blend'], w*p['xgboost']+(1-w)*p[blend['deep_component']], rtol=1e-6, atol=1e-8)
 display(Markdown(f'The frozen validation-selected recommendation is **{selected}**. Saved blend predictions reconstruct from the recorded components and weight.'))
+if w == 0:
+    display(Markdown(f'The optional blend is 100% **{blend["deep_component"]}** here. It adds no gain, so the single-model explanation is sufficient.'))
 """),
         md("""## 8. Native XGBoost TreeSHAP explanations
 
@@ -412,10 +418,10 @@ executed analysis afterward with:
 ```
 
 Run checks with `python -m unittest discover -s tests -v`. See the README for
-environment setup, the full report for interpretation, `docs/VIVA_GUIDE.md`
-for rehearsal and the two course mapping files under `references` for the
-unit-by-unit links. A GitHub upload must have a real published repository URL;
-the local project folder alone does not establish that submission step.
+environment setup, the report for interpretation and the two course mapping
+files under `references` for the unit-by-unit links. `.\\run_demo.ps1` runs a
+saved historical forecast. `.\\run_all.ps1` retrains and rebuilds all deliverables,
+including the report, presentation and ZIP. Each training run fits models again.
 """),
     ]
     return nbf.v4.new_notebook(cells=cells, metadata={

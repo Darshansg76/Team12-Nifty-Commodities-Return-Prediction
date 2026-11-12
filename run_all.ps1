@@ -1,4 +1,4 @@
-param([switch]$RefreshData)
+param([switch]$RefreshData, [switch]$ResultsOnly)
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
 $projectPython = Join-Path $projectRoot '.venv\Scripts\python.exe'
@@ -13,7 +13,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Training failed.' }
 if ($LASTEXITCODE -ne 0) { throw 'Validation failed.' }
 & $projectPython (Join-Path $projectRoot 'scripts\build_notebook.py')
 if ($LASTEXITCODE -ne 0) { throw 'Notebook execution failed.' }
-& $projectPython (Join-Path $projectRoot 'scripts\build_report.py')
-if ($LASTEXITCODE -ne 0) { throw 'Report generation failed.' }
-Write-Host 'Experiment, tests, notebook and Word report regenerated. See docs/REPRODUCIBILITY.md for slide and PDF rendering.'
+if (-not $ResultsOnly) {
+    & (Join-Path $projectRoot 'scripts\build_deliverables.ps1')
+    Write-Host 'Complete: models, tests, notebook, Word, PDF, PowerPoint and submission ZIP.'
+} else {
+    Write-Host 'Experiment, tests and notebook rebuilt. Run without -ResultsOnly to rebuild presentation and reports.'
+}
 

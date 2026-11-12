@@ -13,10 +13,9 @@
 | RMSE, R2 and MAE | Independently checked validation/test scores for all nine candidates, three outer CV folds | Complete |
 | Introduction, methodology, EDA, results, conclusion | Editable 11-page Word report and PDF, plus Markdown source | Complete |
 | PPT | 16-slide editable PowerPoint with speaker notes | Complete |
-| Prepare for viva | Viva guide, historical checkpoint demo and executed notebook | Complete |
 | Creativity and course references | Validation-selected convex blend, TreeSHAP with additivity check, nested chronological validation, four-unit mappings | Complete |
-| Team details | Verified names/SRNs in report, README, slides and viva guide | Complete |
-| Code in GitHub and share for viva | Published private repository: https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction on main. Grant the instructor access for viva. | Published |
+| Team details | Verified names/SRNs in report, README and slides | Complete |
+| Code in GitHub | Published private repository: https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction on main. Other people need repository access. | Published |
 
 The brief permits regression/classification. This implementation performs regression and supplies direction as a derived secondary metric. It does not claim a separate trained classifier. Flash uses its general Task API, with the actual implementation and compatibility details disclosed. The framework requirement is satisfied by real Flash training, rather than a substitute mislabeled as Flash.
 

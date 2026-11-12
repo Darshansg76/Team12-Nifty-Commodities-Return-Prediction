@@ -8,7 +8,7 @@
     "torch": "2.15.0"
   },
   "model_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\cv\\fold_3\\flash\\flash.pth",
-  "checkpoint_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\cv\\fold_3\\flash\\flash_checkpoints\\best.ckpt",
+  "checkpoint_path": "D:\\Sem 5\\MLBD\\mini project\\Team_12_Completed_Project\\models\\cv\\fold_3\\flash\\flash_checkpoints\\best-v2.ckpt",
   "hyperparameters": {
     "hidden_layers": [
       64,
@@ -28,15 +28,15 @@
   "best_epoch": 4,
   "history": {
     "val_loss": [
-      1.402069330215454,
-      1.4054806232452393,
-      1.408492088317871,
-      1.3969025611877441,
-      1.4023863077163696,
-      1.4209928512573242,
-      1.4003645181655884,
-      1.4119598865509033,
-      1.4289368391036987
+      1.403579592704773,
+      1.4041101932525635,
+      1.4085026979446411,
+      1.3971775770187378,
+      1.4038589000701904,
+      1.4217740297317505,
+      1.3973290920257568,
+      1.409690499305725,
+      1.4309006929397583
     ]
   },
   "name": "flash",
@@ -45,7 +45,7 @@
   "n_train": 2000,
   "n_validation": 126,
   "target_unit": "percentage points",
-  "elapsed_seconds": 0.637,
-  "validation_mse": 1.3969024580989993,
+  "elapsed_seconds": 0.606,
+  "validation_mse": 1.3971775677303795,
   "test_used_for_training": false
 }

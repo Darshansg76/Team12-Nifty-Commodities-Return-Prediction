@@ -1,6 +1,6 @@
 # Validation evidence
 
-Verified on 11 November 2026.
+Verified on 12 November 2026 after the weekday correction and simplification.
 
 ## Experiment execution
 
@@ -8,9 +8,11 @@ All five required frameworks completed three expanding outer folds and a final d
 
 ## Software and numeric checks
 
-All 13 unittest checks passed. Five tests establish causal feature prefix invariance, future-shock isolation, independently aligned percentage-return targets, strict date-boundary purging, and train-only scaler statistics. Three saved-artifact tests independently recompute every validation/test metric with NumPy, compare labels to the official close series, and check ordered, unique, disjoint prediction dates. Five additional tests reload each actual trained framework checkpoint and compare predictions on 12 real held-out observations.
+All 14 unittest checks passed. Six feature/split tests cover causal feature prefix invariance, future-shock isolation, aligned next-session returns, strict boundary purging, training-only scaling, and distinct encodings for all seven weekdays. Three saved-artifact tests independently recompute every validation/test metric with NumPy, compare labels to the official close series, and check ordered, unique, disjoint prediction dates. Five tests reload the trained framework checkpoints and compare predictions on 12 real held-out observations.
 
-The maximum checkpoint reload difference was 2.6822e-7 percentage points for Keras. All five satisfied the 1e-5 tolerance. Exact results are in `results/model_reload_checks.json`. The CLI historical demo successfully reloaded all nine candidates and matched each frozen prediction. Dates outside the evaluated test snapshot are rejected.
+The maximum checkpoint reload difference was 1.1921e-7 percentage points for Keras. All five satisfied the 1e-5 tolerance. Exact results are in `results/model_reload_checks.json`. The historical demo reloaded all nine candidates and matched each frozen prediction. Dates outside the evaluated test snapshot are rejected.
+
+The complete `run_all.ps1` workflow finished successfully, including fresh training of all 20 framework fits, tests, notebook, Word/PDF/PPT and ZIP generation. Prediction caching has been removed. The optional blend reduces to 100% fastai; fastai is selected by validation, while Keras has the lowest descriptive test RMSE.
 
 Native XGBoost TreeSHAP contributions use the best stopping iteration. Summed contributions reproduce validation predictions with maximum error 7.4506e-9 percentage points. This checks additive explanation consistency, not economic causality.
 
@@ -20,7 +22,7 @@ The executed notebook contains 11 executed analysis code cells, five embedded fi
 
 The report was rendered through LibreOffice and Poppler, then all 11 pages were visually inspected. The final report uses deliberate table widths, unclipped figures, consistent headers and page numbering. Its Word and PDF versions share the same content.
 
-The revised 16-slide PowerPoint was finalized with the artifact-tool validation helpers, including package integrity, native tables/charts, font and layout geometry, embedded chart workbook data and successful reimport. All final slides were rendered and visually inspected. The deck contains five native tables, six native charts and speaker notes on all slides. The review uses rendered output.
+The simplified 16-slide PowerPoint was finalized with the artifact-tool helpers, including package integrity, native tables/charts, font and layout geometry, embedded chart workbook data and successful reimport. All slides were rendered and visually inspected. The deck contains six native tables, five native charts and speaker notes on every slide. Weekday handling, validation selection, updated metrics and the simpler run commands are explained in the deck. Technical detail remains in speaker notes. The review uses rendered output.
 
 ## GitHub publication
 

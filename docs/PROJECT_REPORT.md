@@ -3,7 +3,7 @@
 
 Machine Learning with Business Data mini project
 
-Team 12   |   Prepared 11 November 2026
+Team 12   |   Updated 12 November 2026
 
 | Member | SRN |
 | --- | --- |
@@ -16,12 +16,12 @@ Team 12   |   Prepared 11 November 2026
 
 This project predicts the next observed trading session return of the Nifty Commodities price index from information available after the current close. We compare XGBoost, Keras, fastai, PyTorch TabNet and Lightning Flash using the same 23 numeric features and chronological partitions. Official NSE Indices data provide 3,644 complete OHLC observations from 27 February 2012 to 9 November 2026. Three expanding folds within the training era use separate inner stopping periods, followed by a 2022 to 2023 development validation period and a frozen test period beginning in 2024.
 
-The lowest validation RMSE selects blend. Its test RMSE is 1.1794 percentage points, MAE is 0.8463, and R2 is 0.0021. These figures come directly from saved predictions. The comparison retains simple baselines, negative R2 values and unsuccessful complex models. A validation-selected convex blend and TreeSHAP explanations extend the course methods. The study evaluates forecast accuracy and does not claim executable trading profits.
+The lowest validation RMSE selects fastai. Its test RMSE is 1.1821 percentage points, MAE is 0.8329, and R2 is -0.0025. The later test shows little forecasting advantage over simple predictions. A weighted average of two models is an optional extension, and TreeSHAP explains the XGBoost model. These results concern forecast errors; they do not establish trading profits.
 
 
 ## Project scope
 
-The supplied Nifty Commodities brief controls this implementation. It asks for EDA, framework comparison, a report, a PowerPoint and viva preparation. The generic project list assigns a different title to ID 12. That inconsistency is recorded in the source notes and does not change the supplied topic.
+We study one question: can the index price history help predict its next session return? The workflow is data preparation, EDA, feature creation, training the five required frameworks, and comparing their results. The report explains each step; the presentation follows the same order.
 
 
 # Introduction and Data
@@ -81,9 +81,11 @@ The distribution and rolling volatility expose the scale of daily forecasting er
 | Price position | Close relative to trailing 5 and 20 session means |
 | Intraday conditions | Close/open return, high-low range/close, open/previous close gap |
 | Oscillator and drawdown | 14-session simple-average RSI and close relative to 60-session maximum |
-| Known calendar | Sine and cosine encodings for weekday and month |
+| Known calendar | Weekday uses a seven-day cycle; month uses a twelve-month cycle |
 
 There are 23 input columns. The 60-session drawdown creates a 59-row warm-up and the final unlabeled row is removed. Features use neither centered windows nor backward filling. The exact feature order is saved in models/features.json. Correlated features can share explanatory credit, so a large attribution is not evidence of an independent economic cause.
+
+The source includes 18 special weekend sessions. The weekday encoding keeps all seven days distinct. This avoids making Saturday share Monday values or Sunday share Tuesday values. Weekend sessions remain real observations and the target is still the next observed session.
 
 
 # Methodology and Validation
@@ -99,14 +101,14 @@ The training cutoff is 31 December 2021 and the development validation cutoff is
 
 ## Expanding cross validation
 
-Three expanding outer folds lie entirely inside the pre-2022 training era. Each outer score covers 252 sessions with a one-row gap. Within each fold training block, the last 126 sessions monitor early stopping and one additional row separates them from fitting. Scaling uses only the inner fitting block. The outer fold outcomes never monitor training. This follows the time-based validation requirements in Unit 1 page 81 and Unit 2 page 59. [3, 4, 5]
+As an additional historical check, we repeat training and scoring in three earlier periods. Each check trains on the past and scores the following 252 sessions. A separate 126-session block controls when training stops. A boundary row is removed so its target cannot reach the next block. The scaler learns only from the fitting block. This is expanding cross validation, following Unit 1 page 81 and Unit 2 page 59. [3, 4, 5]
 
 All five frameworks use the same fold indices, features, target, CPU setting and seed 42. Architecture settings are intentionally compact. The project does not claim an exhaustive search or identical parameter counts across different model families. Final fitting uses the full pre-2022 training block and monitors the 2022 to 2023 validation block. No post-selection refit changes the frozen test predictions.
 
 
 ## Metrics and selection
 
-RMSE = sqrt(mean((y - prediction)^2)) emphasizes large errors. MAE = mean(abs(y - prediction)) measures typical absolute error. R2 = 1 - sum((y - prediction)^2) / sum((y - test mean)^2) can be negative. Direction accuracy compares whether y > 0 and prediction > 0. An exact zero prediction counts as nonpositive. This is a derived directional diagnostic, not a separately trained classifier.
+RMSE = sqrt(mean((y - prediction)^2)) gives more weight to large errors. MAE = mean(abs(y - prediction)) is the average absolute error. Lower is better for both. R2 = 1 - sum((y - prediction)^2) / sum((y - evaluation mean)^2); higher is better and negative values are possible. Direction accuracy checks whether the forecast sign matches the actual sign, treating zero as nonpositive. It is an extra diagnostic derived from regression.
 
 The lowest development validation RMSE selects the recommendation from all models and baselines. The report displays every frozen test score for comparison. A model that happens to score best on the test is descriptive and does not replace the validation-selected recommendation.
 
@@ -123,12 +125,14 @@ The lowest development validation RMSE selects the recommendation from all model
 
 Deep models use at most 40 epochs and stopping patience 5. The dense models use batches of 64. TabNet uses batches of 256 with virtual batches of 64. MSE is the regression objective. Best monitored weights are restored before predictions. Model metadata save the actual stopping epoch, package versions, histories and elapsed training-plus-prediction time. [6, 7, 8, 9]
 
-The Flash implementation uses its general Task API rather than claiming the legacy Flash TabularRegressor convenience wrapper. Flash 0.8.2 runs with PyTorch Lightning 1.9.5 and TorchMetrics 0.10.3. Its legacy checkpoint callback refers to np.Inf, so the adapter supplies a documented compatibility alias to np.inf with NumPy 2. Setuptools 80.9.0 supplies pkg_resources. These details are captured in the environment lock and code.
+Lightning Flash uses its real Task and Trainer APIs with a small regression network. Its older release needs pinned dependencies. The exact compatibility settings are recorded in docs/REPRODUCIBILITY.md and the environment lock. This keeps setup details separate from the forecasting method.
 
 
-## Baselines and project extension
+## Simple baselines and optional blend
 
-The zero-return and fixed training-mean predictors make no use of test outcomes. Ridge regression with alpha 100 provides a simple linear comparison. For the extension, validation selects tabnet among the four deep models. Eleven candidate weights from 0 to 1 combine that prediction with XGBoost. The selected XGBoost weight is 0.1. A boundary weight is retained if that is what validation selects. This project blend is not presented as a method taught in the supplied interpretability folder.
+Zero return predicts no change. Training mean predicts the average training return every day. Ridge is a regularized linear regression. These baselines help judge whether a complex model adds value. They use no test outcomes for fitting.
+
+The optional blend is a weighted average of XGBoost and a deep model. Validation chooses fastai as the deep component and checks eleven weights. It selects 0% XGBoost and 100% fastai. A zero XGBoost weight means the blend is simply the deep model; it provides no extra gain. The main recommendation remains the single candidate with the lowest validation RMSE.
 
 
 # Development Results
@@ -138,11 +142,11 @@ The zero-return and fixed training-mean predictors make no use of test outcomes.
 
 | Model | RMSE mean and sample SD | MAE mean and sample SD |
 | --- | --- | --- |
-| xgboost | 1.4904 +/- 0.4456 | 1.0695 +/- 0.1934 |
-| keras | 1.5106 +/- 0.4991 | 1.0775 +/- 0.2224 |
-| fastai | 1.4951 +/- 0.4603 | 1.0678 +/- 0.2022 |
-| tabnet | 1.5838 +/- 0.5704 | 1.1174 +/- 0.2574 |
-| flash | 1.5008 +/- 0.4713 | 1.0810 +/- 0.2210 |
+| xgboost | 1.4966 +/- 0.4564 | 1.0719 +/- 0.1974 |
+| keras | 1.5183 +/- 0.5090 | 1.0799 +/- 0.2274 |
+| fastai | 1.4954 +/- 0.4642 | 1.0665 +/- 0.2043 |
+| tabnet | 1.5205 +/- 0.4503 | 1.0819 +/- 0.1963 |
+| flash | 1.4930 +/- 0.4619 | 1.0683 +/- 0.2037 |
 
 These three outer-fold scores measure sensitivity to historical eras. Their sample standard deviation describes variation across three periods and is not a confidence interval. The same stopping protocol precedes every outer score. Complete per-fold dates, row counts and signed R2 values are saved in results/cv_metrics.csv.
 
@@ -153,15 +157,15 @@ These three outer-fold scores measure sensitivity to historical eras. Their samp
 | --- | --- | --- | --- | --- |
 | zero_return | 1.1234 | 0.8360 | -0.0038 | 46.65% |
 | training_mean | 1.1214 | 0.8333 | -0.0004 | 53.35% |
-| ridge | 1.1286 | 0.8449 | -0.0132 | 51.32% |
+| ridge | 1.1282 | 0.8442 | -0.0124 | 51.72% |
 | xgboost | 1.1215 | 0.8329 | -0.0004 | 53.35% |
-| keras | 1.1218 | 0.8345 | -0.0009 | 55.78% |
-| fastai | 1.1144 | 0.8267 | 0.0122 | 54.56% |
-| tabnet | 1.1097 | 0.8179 | 0.0204 | 55.38% |
-| flash | 1.1140 | 0.8297 | 0.0129 | 53.55% |
-| blend | 1.1096 | 0.8183 | 0.0207 | 55.78% |
+| keras | 1.1172 | 0.8319 | 0.0072 | 54.56% |
+| fastai | 1.1096 | 0.8250 | 0.0207 | 53.55% |
+| tabnet | 1.1201 | 0.8332 | 0.0020 | 53.35% |
+| flash | 1.1124 | 0.8298 | 0.0156 | 53.55% |
+| blend | 1.1096 | 0.8250 | 0.0207 | 53.55% |
 
-The selection rule chooses blend, with validation RMSE 1.1096 pp. Validation also monitors early stopping and selects the blend component and weight. Its scores therefore contain selection optimism. Only the later frozen test estimates performance after those choices. The blend is a candidate in this rule and receives no guaranteed preference.
+The selection rule chooses fastai, with validation RMSE 1.1096 pp. The optional blend ties it because its selected weight reduces to the same model. Validation also controls when training stops, so these scores may be optimistic. The later test checks performance after these choices are fixed.
 
 
 # Frozen Test Results
@@ -170,15 +174,15 @@ The selection rule chooses blend, with validation RMSE 1.1096 pp. Validation als
 | --- | --- | --- | --- | --- |
 | zero_return | 1.1813 | 0.8428 | -0.0011 | 44.29% |
 | training_mean | 1.1807 | 0.8385 | -0.0001 | 55.71% |
-| ridge | 1.1889 | 0.8483 | -0.0140 | 47.81% |
+| ridge | 1.1887 | 0.8482 | -0.0137 | 48.52% |
 | xgboost | 1.1786 | 0.8379 | 0.0034 | 55.99% |
-| keras | 1.1730 | 0.8491 | 0.0130 | 51.90% |
-| fastai | 1.1842 | 0.8338 | -0.0061 | 54.44% |
-| tabnet | 1.1804 | 0.8480 | 0.0003 | 51.06% |
-| flash | 1.1762 | 0.8339 | 0.0075 | 55.15% |
-| blend | 1.1794 | 0.8463 | 0.0021 | 51.48% |
+| keras | 1.1667 | 0.8485 | 0.0235 | 53.03% |
+| fastai | 1.1821 | 0.8329 | -0.0025 | 55.01% |
+| tabnet | 1.2013 | 0.8306 | -0.0354 | 55.01% |
+| flash | 1.1741 | 0.8329 | 0.0110 | 55.29% |
+| blend | 1.1821 | 0.8329 | -0.0025 | 55.01% |
 
-The validation-selected blend records test RMSE 1.1794 pp, MAE 0.8463 pp, R2 0.0021 and direction accuracy 51.48%. The lowest observed test RMSE belongs to keras. That retrospective comparison does not change the earlier selection.
+The validation-selected fastai records test RMSE 1.1821 pp, MAE 0.8329 pp, R2 -0.0025 and direction accuracy 55.01%. The lowest observed test RMSE belongs to keras. That retrospective comparison does not change the earlier selection.
 
 ![Figure 3 Observed versus predicted return and residuals of the selected model](../results/figures/05_diagnostics.png)
 
@@ -191,20 +195,20 @@ A negative R2 means that the model performs worse than predicting the mean of th
 
 Native XGBoost TreeSHAP decomposes each prediction into a bias term and feature contributions. The computation uses only trees through the best stopping iteration. The maximum numerical additivity error is 7.45e-09 pp. On validation data, the three largest mean absolute attributions are return_1, return_lag_5, return_lag_1. These describe the fitted forecast, not causal drivers or investment value. [10]
 
-| Framework | Simplicity | Transparency and practical efficacy |
-| --- | --- | --- |
-| XGBoost | Short tabular workflow | TreeSHAP and tree structure aid inspection. Compare measured errors to simple baselines. |
-| Keras | Compact fit and callback API | Dense weights need attribution or sensitivity analysis. Torch backend shares the common runtime. |
-| fastai | High-level tabular learner | Convenient callbacks and transforms. Dense networks remain difficult to interpret directly. |
-| TabNet | More architecture settings | Attentive masks and aggregate importances add model explanations. Masks are not causal evidence. |
-| Flash | Most legacy setup work here | Task and Trainer expose training steps. Compatibility pins add maintenance cost. |
+| Framework | Simplicity | Transparency | Efficacy |
+| --- | --- | --- | --- |
+| XGBoost | Short tabular API | TreeSHAP used here | Test RMSE 1.1786 pp |
+| Keras | Readable layer API | Needs extra attribution | Test RMSE 1.1667 pp |
+| fastai | High-level learner | Needs extra attribution | Test RMSE 1.1821 pp |
+| TabNet | More settings | Feature masks available | Test RMSE 1.2013 pp |
+| Flash | Legacy setup work | Needs extra attribution | Test RMSE 1.1741 pp |
 
 Simplicity and transparency are reasoned qualitative comparisons, not invented numeric ratings. Efficacy is the observed RMSE, MAE, R2 and direction accuracy on identical dates. The simple baseline remains preferable when added complexity fails to improve the chosen validation criterion.
 
 
 # Conclusion and Reproducibility
 
-The completed comparison selects blend under the stated validation rule. Its frozen test RMSE is 1.1794 pp and R2 is 0.0021, indicating very weak predictive skill. The blend improves RMSE over zero return by only 0.001918 pp. Its direction accuracy of 51.48% falls below the training-mean benchmark at 55.71%. These results do not establish a reliable forecasting advantage. The blend and model explanations extend the analysis without using final test labels to optimize the system.
+Validation selects fastai. On the later test it records RMSE 1.1821 pp, compared with 1.1813 pp for zero return. Its R2 is -0.0025 and direction accuracy is 55.01%, compared with 55.71% for the training-mean baseline. This is very weak predictive skill. The lowest test RMSE belongs to keras, but that observation does not change the earlier validation choice. The optional blend adds no gain in this run.
 
 
 ## Limitations
@@ -216,9 +220,9 @@ The final model remains frozen at its original training cutoff, which makes eval
 
 ## Files and commands
 
-The project includes the raw source responses and provenance, processed partitions, actual framework checkpoints, predictions, metrics, figures, an executed analysis notebook, editable presentation, report and viva guide. From a Python 3.12 environment, install requirements.txt, then run python src/pipeline.py. Run python -m unittest discover -s tests -v to verify causality, split isolation and the saved metrics. The local Windows launcher uses the prepared .venv environment.
+Start with README.md for the short explanation and file map. Run .\run_demo.ps1 for one saved historical prediction. Run .\run_all.ps1 to retrain, test, rebuild the notebook, Word report, PDF and PowerPoint, and refresh the submission ZIP. The full authoring command uses the prepared Codex runtime; on a computer with only Python, .\run_all.ps1 -ResultsOnly rebuilds the experiment and notebook.
 
-Model caches carry a signature of the source CSV and training code. Code or data changes force new prediction caches. Downloading is a separate explicit command, so reproduction uses the frozen snapshot by default. The project is published in a private GitHub repository at https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction on the main branch. Grant the instructor repository access before sharing the viva link.
+Each full training run fits every model again. There is no prediction-cache shortcut. Downloading is an explicit option, so normal runs use the included frozen data. The code and deliverables are in the private GitHub repository https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction on main. Other people need repository access to open it.
 
 
 ## Connection to the four units
@@ -252,10 +256,3 @@ Model caches carry a signature of the source CSV and training code. Code or data
 [9] Lightning Flash. Task API. https://lightning-flash.readthedocs.io/en/stable/api/generated/flash.core.model.Task.html. Supplied Deep_Learning_with_Tabular_Business_Data/1.pdf and 3.pdf. Page mapping in references/unit_3_4_mapping.md.
 
 [10] Lundberg, S. and Lee, S. I. 2017. A Unified Approach to Interpreting Model Predictions. https://arxiv.org/abs/1705.07874. Native contributions: https://xgboost.readthedocs.io/en/stable/python/python_api.html.
-
-
-## Resolution of source inconsistencies
-
-The specific project brief names Nifty Commodities, while the generic list assigns investor risk tolerance to Project ID 12. This submission follows the specific brief and the user topic. The team PDF supplies the full names and SRNs. The user clarified that the old prohibition on AI assistance no longer applies. No claim of unaided authorship is made.
-
-Unit 1 examples constrain or take the absolute value of R2, which is unsuitable for held-out evaluation. This implementation preserves signed R2. The supplied SHAP lecture cites arXiv 1602.04938, which is the LIME paper. This report cites the original SHAP paper instead. The interpretability folder name mentions blending, but its PDFs do not develop the blend used here.

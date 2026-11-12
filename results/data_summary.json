@@ -44,5 +44,10 @@
   },
   "training_target_skew": -0.671605701010695,
   "training_target_excess_kurtosis": 7.6595222226131785,
-  "training_up_fraction": 0.5327731092436975
+  "training_up_fraction": 0.5327731092436975,
+  "calendar_encoding": {
+    "weekday_cycle_days": 7,
+    "month_cycle_months": 12,
+    "weekend_source_sessions": 18
+  }
 }

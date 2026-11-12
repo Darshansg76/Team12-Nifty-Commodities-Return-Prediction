@@ -59,6 +59,19 @@ class PipelineChronologyTests(unittest.TestCase):
             rtol=1e-10, atol=1e-10,
         )
 
+    def test_weekend_sessions_keep_distinct_weekday_features(self):
+        """Special Saturday/Sunday sessions must not look like Monday/Tuesday."""
+        raw = example_ohlc(start="2024-01-01", end="2024-07-01")
+        raw["Date"] = pd.date_range("2024-01-01", periods=len(raw), freq="D")
+        encoded = pipeline.build_features(raw)
+        representatives = encoded.groupby(encoded.Date.dt.dayofweek).first()
+        self.assertEqual(list(representatives.index), list(range(7)))
+        actual = representatives[["weekday_sin", "weekday_cos"]].to_numpy()
+        expected = np.column_stack((np.sin(2*np.pi*np.arange(7)/7),
+                                    np.cos(2*np.pi*np.arange(7)/7)))
+        np.testing.assert_allclose(actual, expected, atol=1e-12)
+        self.assertEqual(len(np.unique(np.round(actual, 12), axis=0)), 7)
+
     def test_feature_values_do_not_change_when_future_is_appended(self):
         """A full-history fit/centered window/backfill would alter past features."""
         for stop in (900, 1500):

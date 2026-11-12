@@ -1,4 +1,9 @@
-"""Causal daily return forecasting. Run from the project root: python src/pipeline.py."""
+"""Predict the next session's return using five required ML frameworks.
+
+Read main() as six steps: load data, build past-only features, check earlier
+periods, train the five models, select on validation, and evaluate on test.
+Run from the project root: python src/pipeline.py
+"""
 from __future__ import annotations
 
 import argparse
@@ -67,8 +72,10 @@ def build_features(raw: pd.DataFrame) -> pd.DataFrame:
     out.loc[(down == 0) & (up > 0), 'rsi_14'] = 100
     out.loc[(down == 0) & (up == 0), 'rsi_14'] = 50
     out['drawdown_60'] = (c / c.rolling(60).max() - 1) * 100
-    out['weekday_sin'] = np.sin(2*np.pi*d.Date.dt.dayofweek/5)
-    out['weekday_cos'] = np.cos(2*np.pi*d.Date.dt.dayofweek/5)
+    # Use all seven calendar days: NSE occasionally holds weekend sessions.
+    # A five-day cycle would incorrectly make Saturday equal Monday.
+    out['weekday_sin'] = np.sin(2*np.pi*d.Date.dt.dayofweek/7)
+    out['weekday_cos'] = np.cos(2*np.pi*d.Date.dt.dayofweek/7)
     out['month_sin'] = np.sin(2*np.pi*(d.Date.dt.month-1)/12)
     out['month_cos'] = np.cos(2*np.pi*(d.Date.dt.month-1)/12)
     out['target_return'] = r.shift(-1)
@@ -76,6 +83,7 @@ def build_features(raw: pd.DataFrame) -> pd.DataFrame:
 
 
 def split_dataset(frame):
+    """Keep time order and remove outcomes that reach the next period."""
     train = frame.loc[frame.Date <= '2021-12-31'].copy()
     val = frame.loc[(frame.Date > '2021-12-31') & (frame.Date <= '2023-12-31')].copy()
     test = frame.loc[frame.Date > '2023-12-31'].copy()
@@ -89,6 +97,7 @@ def split_dataset(frame):
 
 
 def make_arrays(train, val, test):
+    """Learn feature scaling on training data and reuse it for later dates."""
     scaler = StandardScaler().fit(train[FEATURE_COLUMNS])
     ans = {'scaler':scaler}
     for label, part in [('train',train),('val',val),('test',test)]:
@@ -98,6 +107,7 @@ def make_arrays(train, val, test):
 
 
 def metrics(y, pred):
+    """Return errors in percentage points, signed R2 and sign accuracy."""
     y,pred = np.asarray(y,dtype=float),np.asarray(pred,dtype=float).ravel()
     return {'RMSE':float(np.sqrt(mean_squared_error(y,pred))),
             'MAE':float(mean_absolute_error(y,pred)), 'R2':float(r2_score(y,pred)),
@@ -153,7 +163,8 @@ def plot_results(raw, frame, train, val, test, pred, scores, summary):
         annual.append({'year':int(year),**metrics(part.target_return,pred[chosen][idx])})
     pd.DataFrame(annual).to_csv(ROOT/'results'/'annual_test_metrics.csv',index=False)
     if (ROOT/'results'/'xgboost_shap_importance.csv').exists():
-        imp=pd.read_csv(ROOT/'results'/'xgboost_shap_importance.csv').head(12).iloc[::-1]
+        imp=pd.read_csv(ROOT/'results'/'xgboost_shap_importance.csv')
+        imp=imp.loc[imp.mean_abs_shap > 0].head(6).iloc[::-1]
         fig,ax=plt.subplots(figsize=(9,4)); ax.barh(imp.feature,imp.mean_abs_shap,color='#123D55')
         ax.set(xlabel='Mean absolute TreeSHAP contribution (pp)',title='XGBoost explanations on validation data'); save('06_explanations.png')
 
@@ -162,14 +173,14 @@ def main(skip_cv=False):
     from model_adapters import fit_predict
     start=time.perf_counter()
     results=ROOT/'results'; results.mkdir(exist_ok=True)
+    # 1. Load the included official snapshot; downloading is a separate choice.
     rawpath=ROOT/'data'/'raw'/'nifty_commodities_complete_ohlc.csv'
     raw=pd.read_csv(rawpath).rename(columns=str.title)
     raw['Date']=pd.to_datetime(raw['Date'])
     raw=raw.loc[raw.Date <= '2026-11-10'].sort_values('Date').reset_index(drop=True)
     full_source=pd.read_csv(ROOT/'data'/'raw'/'nifty_commodities_daily.csv')
+    # 2. Make 23 features and chronological train / validation / test periods.
     frame=build_features(raw); train,val,test=split_dataset(frame)
-    # Cache keys include input data and authoring code, so edits cannot reuse old fits.
-    signature=hashlib.sha256(rawpath.read_bytes()+Path(__file__).read_bytes()+(ROOT/'src'/'model_adapters.py').read_bytes()).hexdigest()[:12]
     (ROOT/'data'/'processed').mkdir(exist_ok=True)
     frame.to_csv(ROOT/'data'/'processed'/'features.csv',index=False)
     for label,part in [('train',train),('validation',val),('test',test)]:
@@ -189,10 +200,12 @@ def main(skip_cv=False):
         'training_target_skew':train.target_return.skew(),
         'training_target_excess_kurtosis':train.target_return.kurt(),
         'training_up_fraction':float((train.target_return>0).mean()),
+        'calendar_encoding':{'weekday_cycle_days':7,'month_cycle_months':12,
+                             'weekend_source_sessions':int((raw.Date.dt.dayofweek >= 5).sum())},
     })
     a=make_arrays(train,val,test); joblib.dump(a['scaler'],ROOT/'models'/'scaler.joblib')
     dump(ROOT/'models'/'features.json',FEATURE_COLUMNS)
-    # All frameworks receive the same 3 expanding training folds and 1-row gaps.
+    # 3. Check all frameworks on the same three earlier historical periods.
     cvrows=[]
     configs={'xgboost':{'max_depth':2,'n_estimators':160,'learning_rate':.03}}
     if not skip_cv:
@@ -206,16 +219,14 @@ def main(skip_cv=False):
             fa=make_arrays(inner_train,inner_stop,fv)
             for name in MODEL_NAMES:
                 output=ROOT/'models'/'cv'/f'fold_{fold}'/name; output.mkdir(parents=True,exist_ok=True)
-                cached=output/f'predictions_{signature}.npz'
                 print(f'CV fold {fold}: {name}',flush=True)
-                if cached.exists():
-                    vp=np.load(cached)['validation']
-                else:
-                    _,vp,meta=fit_predict(name,fa['X_train'],fa['y_train'],fa['X_val'],fa['y_val'],fa['X_test'],seed=42,output_dir=output,config=configs.get(name))
-                    np.savez(cached,validation=vp); dump(output/'metadata.json',meta)
+                _,vp,meta=fit_predict(name,fa['X_train'],fa['y_train'],fa['X_val'],fa['y_val'],fa['X_test'],seed=42,output_dir=output,config=configs.get(name))
+                np.savez(output/'predictions.npz',validation=vp)
+                dump(output/'metadata.json',meta)
                 cvrows.append({'fold':fold,'model':name,'train_n':len(inner_train),'early_stopping_n':len(inner_stop),'validation_n':len(fv),'train_end':str(inner_train.Date.max().date()),'validation_start':str(fv.Date.min().date()),**metrics(fa['y_test'],vp)})
         cv=pd.DataFrame(cvrows); cv.to_csv(results/'cv_metrics.csv',index=False)
         cv.groupby('model')[['RMSE','MAE','R2','direction_accuracy']].agg(['mean','std']).to_csv(results/'cv_summary.csv')
+    # 4. Fit simple baselines, then each of the five required frameworks.
     vp={};tp={};metas={};rows=[]
     for name,constant in [('zero_return',0.),('training_mean',float(a['y_train'].mean()))]:
         vp[name]=np.full(len(val),constant);tp[name]=np.full(len(test),constant)
@@ -224,14 +235,11 @@ def main(skip_cv=False):
     joblib.dump(ridge,ROOT/'models'/'ridge.joblib')
     for name in MODEL_NAMES:
         output=ROOT/'models'/name;output.mkdir(exist_ok=True)
-        cached=output/f'predictions_{signature}.npz'
         print('Final development fit: '+name,flush=True)
-        if cached.exists():
-            z=np.load(cached);vp[name]=z['validation'];tp[name]=z['test'];metas[name]=json.loads((output/'metadata.json').read_text())
-        else:
-            vp[name],tp[name],metas[name]=fit_predict(name,a['X_train'],a['y_train'],a['X_val'],a['y_val'],a['X_test'],seed=42,output_dir=output,config=configs.get(name))
-            np.savez(cached,validation=vp[name],test=tp[name]);dump(output/'metadata.json',metas[name])
-    # Fit the blend weight only on the development validation period.
+        vp[name],tp[name],metas[name]=fit_predict(name,a['X_train'],a['y_train'],a['X_val'],a['y_val'],a['X_test'],seed=42,output_dir=output,config=configs.get(name))
+        np.savez(output/'predictions.npz',validation=vp[name],test=tp[name])
+        dump(output/'metadata.json',metas[name])
+    # 5. Optional extension: try a weighted average using validation only.
     best_deep=min(['keras','fastai','tabnet','flash'],key=lambda n:metrics(a['y_val'],vp[n])['RMSE'])
     grid=[]
     for weight in np.linspace(0,1,11):
@@ -241,7 +249,7 @@ def main(skip_cv=False):
     vp['blend']=weight*vp['xgboost']+(1-weight)*vp[best_deep]
     tp['blend']=weight*tp['xgboost']+(1-weight)*tp[best_deep]
     dump(results/'blend_selection.json',{'deep_component':best_deep,'xgboost_weight':weight,'grid':grid,'selection_data':'validation only; no test optimization'})
-    # Select the final recommendation before computing/reporting test scores.
+    # 6. Choose by validation RMSE first, then report every test result.
     selected=min(vp,key=lambda n:metrics(a['y_val'],vp[n])['RMSE'])
     for name in vp:
         rows.append({'model':name,'split':'validation',**metrics(a['y_val'],vp[name])})
