@@ -12,7 +12,7 @@ We ask whether the Nifty Commodities index price history can predict its **next 
 
 ## Start here
 
-Open [the presentation](deliverables/Team_12_Presentation.pptx) for the complete explanation in 16 slides. The [PDF report](deliverables/Team_12_Project_Report.pdf) gives the detailed methodology and results; [the executed notebook](notebooks/Team_12_Analysis.ipynb) shows calculations and graphs.
+Open [the presentation](deliverables/Team_12_Presentation.pptx) for the complete explanation in 16 slides. The [Word presentation guide](deliverables/Team_12_Presentation_Guide.docx) gives detailed explanations, speaking scripts and the three teammate assignments. The [PDF report](deliverables/Team_12_Project_Report.pdf) gives the methodology and results; [the executed notebook](notebooks/Team_12_Analysis.ipynb) shows calculations and graphs.
 
 From this project folder in PowerShell, run:
 
@@ -57,7 +57,7 @@ Lower RMSE/MAE and higher R² are better. RMSE and MAE are in return percentage 
 .\run_all.ps1
 ```
 
-This retrains all models, runs the checks, executes the notebook, rebuilds Word/PDF/PPT, refreshes this summary and checksums, and recreates `Team_12_Completed_Project.zip` beside the project folder. Every training run fits models again; old prediction caches are not reused. Normal runs use the included frozen data.
+This retrains all models, runs the checks, executes the notebook, rebuilds Word/PDF/PPT and the presentation guide, refreshes this summary and checksums, and recreates `Team_12_Completed_Project.zip` beside the project folder. Every training run fits models again; old prediction caches are not reused. Normal runs use the included frozen data.
 
 The prepared computer has the Python environment and Codex authoring runtime. On a new computer with Python 3.12, use `.\setup.ps1`, then `.\run_all.ps1 -ResultsOnly` for training, checks and the notebook. Full slide/report authoring also needs the runtime described in [reproduction details](docs/REPRODUCIBILITY.md). The finished Word, PDF and PPT open independently of that runtime.
 

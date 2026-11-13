@@ -13,6 +13,7 @@
 | RMSE, R2 and MAE | Independently checked validation/test scores for all nine candidates, three outer CV folds | Complete |
 | Introduction, methodology, EDA, results, conclusion | Editable 11-page Word report and PDF, plus Markdown source | Complete |
 | PPT | 16-slide editable PowerPoint with speaker notes | Complete |
+| Detailed slide explanation and team presentation | Editable Word guide with all 16 explanations, speaking scripts, chart cues, transitions and the 6–5–5 allocation | Complete |
 | Creativity and course references | Validation-selected convex blend, TreeSHAP with additivity check, nested chronological validation, four-unit mappings | Complete |
 | Team details | Verified names/SRNs in report, README and slides | Complete |
 | Code in GitHub | Published private repository: https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction on main. Other people need repository access. | Published |

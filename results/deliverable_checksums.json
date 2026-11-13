@@ -2,6 +2,8 @@
   "deliverables/Team_12_Project_Report.docx": "11202d200662a990d5c151d73f28555cbf280371d103e4a018a74a647cc61b04",
   "deliverables/Team_12_Project_Report.pdf": "39ec3efc17750ea17fea8ec4585fccb34a2826c7edb8a17806caa803fa885b38",
   "deliverables/Team_12_Presentation.pptx": "ea205710f65f14276ae0f5fe17991373369d76eefd4736fe23bf14e8ee579411",
+  "deliverables/Team_12_Presentation_Guide.docx": "1f926bd640e8f7826aa5b8a5af6eef5d76c96a0dbec9dcf4c1af84532c22cd96",
+  "scripts/build_presentation_guide.py": "e9a7598a9773978ea68b35e46f1679281f9969b8541c2a6c77ff2eb64f5f0692",
   "notebooks/Team_12_Analysis.ipynb": "904d84bc211e91694037fe779d3d6f63e0dac53771261045c012cdbe6d5ccfd9",
   "src/pipeline.py": "c7d7fb6b7b86d3342649da8ff0a1e45170902ab431371e10298ea72d405482bc",
   "src/model_adapters.py": "6eef175ba380b0ac8ec027c37ceb874402885cae2aaa9b5b87b1c8d1e412fe06",
@@ -18,6 +20,6 @@
   "data/raw/provenance.json": "c0bde0f36f02d1ef589499c33c08d8b77110515bf11fe261accb59e5535d5108",
   "run_all.ps1": "311b0be641c94d990d4b249b7036a7d31c90303fc3c7823eabc08671005cac92",
   "run_demo.ps1": "420cdfe32be3c2c363d02895338ba8529cc61404ffd777f96c3d48ae2f6b8086",
-  "scripts/build_deliverables.ps1": "5deb13737d77ebdf4b178ab1799252e5286888965f26de2c52d153d9233a5994",
-  "README.md": "86d03aea25e18a8884c36050fc4bb7ad78d4bab37fda7a5dea104997d6e7f6b3"
+  "scripts/build_deliverables.ps1": "9fe06333b93804ab7a7c32eeb8003bd177b6b2a660506f118bac84a4ba080bbe",
+  "README.md": "d1e0b3ee73ff06745331023544336fd4d9c49ecfc685db0ae3bbd5aca8126a4d"
 }

@@ -19,7 +19,7 @@ foreach ($required in @($runtimeNode, $runtimePython, (Join-Path $documentsSkill
     }
 }
 
-& $runtimeNode (Join-Path $documentsSkill 'container_tools\mark_artifact_operation_started.mjs') --operation-kind edit --expected-output-count 1 --output-format docx
+& $runtimeNode (Join-Path $documentsSkill 'container_tools\mark_artifact_operation_started.mjs') --operation-kind edit --expected-output-count 2 --output-format docx
 if ($LASTEXITCODE -ne 0) { throw 'Word authoring initialization failed.' }
 & $projectPython (Join-Path $PSScriptRoot 'build_report.py')
 if ($LASTEXITCODE -ne 0) { throw 'Word report generation failed.' }
@@ -40,5 +40,12 @@ try {
 if ($LASTEXITCODE -ne 0) { throw 'Presentation authoring initialization failed.' }
 & $runtimeNode (Join-Path $PSScriptRoot 'build_slides.mjs')
 if ($LASTEXITCODE -ne 0) { throw 'PowerPoint generation failed.' }
+& $runtimePython (Join-Path $PSScriptRoot 'build_presentation_guide.py')
+if ($LASTEXITCODE -ne 0) { throw 'Presentation guide generation failed.' }
+try {
+    $env:PATH = "C:\Program Files\LibreOffice\program;$(Join-Path $runtimeRoot 'native\poppler\Library\bin');$originalPath"
+    & $runtimePython (Join-Path $documentsSkill 'render_docx.py') (Join-Path $projectRoot 'deliverables\Team_12_Presentation_Guide.docx') --output_dir (Join-Path $projectRoot '.build\presentation_guide\render')
+    if ($LASTEXITCODE -ne 0) { throw 'Presentation guide rendering failed.' }
+} finally { $env:PATH = $originalPath }
 & $projectPython (Join-Path $PSScriptRoot 'prepare_release.py')
 if ($LASTEXITCODE -ne 0) { throw 'Submission packaging failed.' }

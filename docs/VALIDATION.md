@@ -26,4 +26,6 @@ The 16-slide PowerPoint follows Introduction, What we did, and Our results. It w
 
 ## GitHub publication
 
+The presentation guide was added on 13 November 2026. All 18 rendered pages were reviewed, including four editable Word equations. It contains a dedicated explanation, speaking script, chart/table cue, precision reminder and transition for every slide. The 6–5–5 presenter allocation is preserved, with a target of 300 seconds each and closely balanced script lengths. Its nine-row results table matches the saved metrics.
+
 GitHub device authentication completed for Darshansg76. The project was uploaded to https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction. GitHub CLI verified private visibility and the main default branch. The local main branch tracks origin/main. Because the repository is private, other people need repository access before they can open the viva link.

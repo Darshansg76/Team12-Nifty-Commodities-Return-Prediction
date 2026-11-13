@@ -37,6 +37,8 @@ The PowerPoint builder reads the same experiment files, builds native editable t
 
 Rendered PNGs, dependency checks, synthetic smoke diagnostics and build logs are local verification files, excluded from the submission ZIP and Git. Visual review used rendered output, not a claim that PowerPoint was opened interactively.
 
+The Word presentation guide is built by `scripts/build_presentation_guide.py` after the PPT. It verifies the 16 current slide titles, uses saved metrics for the main numerical comparisons, and retains the presenter allocation: Darshan 1–6, Shridhar 7–11 and Dhanraj 12–16. The scripts target five minutes per person. The full deliverable builder regenerates and renders this guide before packaging it. Study explanations are additional preparation rather than extra spoken material.
+
 ## GitHub publishing
 
 The project is published at https://github.com/Darshansg76/Team12-Nifty-Commodities-Return-Prediction as a private repository on main. Grant the instructor or teammates repository access before sharing the link. For future committed changes, `./publish_github.ps1` checks authentication, pushes to the existing origin and prints its URL. In a fresh local repository with no origin, it creates a private repository by default. An explicit existing remote can be supplied with `-ExistingRepositoryUrl https://github.com/OWNER/REPOSITORY.git`.
