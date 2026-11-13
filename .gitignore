@@ -16,3 +16,10 @@ references/*.html
 references/IndexMapping.json
 references/test2025.json
 
+
+# Generated training artifacts
+models/cv/
+models/*/metadata.json
+models/*/predictions.npz
+models/flash/flash_checkpoints/
+data/processed/features.csv
